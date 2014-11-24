@@ -11,42 +11,43 @@ requirejs.config({
     }
 });
 
-define(['jquery','phaser'], function($, Phaser) {
+define(['jquery','phaser', 'gameclient'], function($, Phaser, GameClient) {
 
 
 	var Game = function(){
-		//Test case, config will be provided by the server
-		var config = {
-			mapUrl: "assets/big_map.json"
-		};
-		this.init(config);
+		this.connect();
 	};
 
 	Game.prototype = {
 
-		init : function(config){
+		init: function(config){
 			var gameObj = this;
 			this.game = new Phaser.Game(($(window).width()-100), 640, Phaser.AUTO, '', { 
 				preload: function(){
-					gameObj.preload(config);
+					console.log(config);
+					gameObj._preload(config);
 				},
-				create: this.create, 
-				update: this.update, 
-				render: this.render, 
+				create: this._create, 
+				update: this._update, 
+				render: this._render, 
 				forceSetTimeOut: false 
 			});
-
-			Phaser.RequestAnimationFrame(this.game, true);
+			Phaser.RequestAnimationFrame(this.game, true);	
 		},
 
-		preload : function(config) {
+		connect: function(){
+			var client = new GameClient();
+			client.connect('localhost', 3001, this);
+		},
+
+		_preload : function(config) {
 			this.game.load.tilemap('map', config.mapUrl, null, Phaser.Tilemap.TILED_JSON);
 		    this.game.load.image('ground_1x1', 'assets/ground_1x1.png');
 		    this.game.load.image('Grass', 'assets/FeThD.png');
 		    this.game.load.image('Water', 'assets/water_1x1.png');
 		},
 
-		create : function() {
+		_create : function() {
 			var game = this.game;
 			
 		    game.physics.startSystem(Phaser.Physics.P2JS);
@@ -77,7 +78,7 @@ define(['jquery','phaser'], function($, Phaser) {
 		    game.physics.p2.setBoundsToWorld(true, true, true, true, false);
 		},
 
-		update : function() {
+		_update : function() {
 
 		}
 	};

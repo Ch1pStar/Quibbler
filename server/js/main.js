@@ -16,7 +16,7 @@ getConfigFile(configPath, function(config) {
 	if(config) {
 		main(config);
 	} else {
-		console.error("Server cannot start without any configuration file.");
+		console.error("Server cannot start without a configuration file.");
 		process.exit(1);
 	}
 });
@@ -35,6 +35,12 @@ function main(config) {
     wss.on('connection', function(ws){
         console.log("Client connected");
         //CREATE NEW PLAYER ON NEW CONNECTION
+
+        ws.send('test');
+
+        ws.on('close', function(){
+            console.log("Client - disconnected from server!");
+        })
     });
 
     process.on('uncaughtException', function (e) {
