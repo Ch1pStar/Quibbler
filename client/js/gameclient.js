@@ -2,28 +2,38 @@ define([], function(){
 
 
 	var GameClient = function(){
+		this.client = null;
+		this.callbackContext = null;
 	};
 
 	GameClient.prototype = {
-		connect: function(host, port, callbackObj){
-				this.client = new WebSocket("ws://"+host+":"+port);
+		connect: function(host, port, callbackContext){
+			if(typeof callbackContext === 'undefined'){
+				console.error("A  callback context is required to deliver server messages");
+			}
+			this.callbackContext = callbackContext;
+			var gameClient = this;
+			client = new WebSocket("ws://"+host+":"+port);
 
-				var gameClient = this;
+			client.onmessage = function(e){
+				console.log("Received data: %s", e.data);
+				var parsedData = JSON.parse(e.data);
+				gameClient.stateUpdate(parsedData);
 
-				this.client.onmessage = function(e){
-					console.log("Received data: %s", e.data);
-					gameClient.receiveConfig();
-				};
-
-				this.initCallbackObject = callbackObj;
-		},
-		
-		receiveConfig: function(){
-			var config = {
-				mapUrl: "assets/big_map.json"
+				client.send('asdas');
 			};
 
-			this.initCallbackObject.init(config);
+			this.client = client;
+
+		},
+
+		stateUpdate: function(data){
+			//sanitize data to application objects
+			this.stateUpdateCallback.call(this.callbackContext,data);
+		},
+
+		onStateUpdate: function(callback){
+			this.stateUpdateCallback = callback;
 		}
 	}
 

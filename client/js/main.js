@@ -1,7 +1,8 @@
+var game;
 define(['jquery', 'game'], function($, Game) {
 	function initGame() {
 
-		var game = new Game();
+		game = new Game();
 	}
 	initGame();	
 });

@@ -11,40 +11,62 @@ requirejs.config({
     }
 });
 
-define(['jquery','phaser', 'gameclient'], function($, Phaser, GameClient) {
+define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, GameClient, EventQueue) {
 
 
 	var Game = function(){
-		this.connect();
+		this.init();
 	};
 
 	Game.prototype = {
 
-		init: function(config){
+		init: function(){
 			var gameObj = this;
-			this.game = new Phaser.Game(($(window).width()-100), 640, Phaser.AUTO, '', { 
-				preload: function(){
-					console.log(config);
-					gameObj._preload(config);
-				},
-				create: this._create, 
-				update: this._update, 
-				render: this._render, 
+			var wWidth = $(window).width();
+			var gameWidth = 1216;
+			if(wWidth < gameWidth){
+				gameWidth = wWidth - 50;
+			}
+			this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', { 
+				preload: this.caller(this._preload),
+				create: this.caller(this._create), 
+				update: this.caller(this._update), 
+				render: this.caller(this._render), 
 				forceSetTimeOut: false 
 			});
-			Phaser.RequestAnimationFrame(this.game, true);	
+
+			this.eventQueue = new EventQueue(16);
+
+			//Connect to game server after local client is initialized and server event handlers are set
+			this.connect()				
 		},
 
 		connect: function(){
-			var client = new GameClient();
+			var client = new GameClient();		
+			client.onStateUpdate(this.onStateUpdate);
 			client.connect('localhost', 3001, this);
 		},
 
-		_preload : function(config) {
+		onStateUpdate: function(data){
+			this.eventQueue.push(data);
+		},
+
+		_preload : function() {
+			var config = {
+				mapUrl: "assets/zambies.json"
+			};
+
 			this.game.load.tilemap('map', config.mapUrl, null, Phaser.Tilemap.TILED_JSON);
 		    this.game.load.image('ground_1x1', 'assets/ground_1x1.png');
 		    this.game.load.image('Grass', 'assets/FeThD.png');
 		    this.game.load.image('Water', 'assets/water_1x1.png');
+
+
+		    this.game.load.image('bg', 'assets/bg_tile.png');
+		    this.game.load.image('road', 'assets/road_pattern.png');
+		    this.game.load.image('road_corners', 'assets/road_corners.png');
+			
+			
 		},
 
 		_create : function() {
@@ -56,14 +78,17 @@ define(['jquery','phaser', 'gameclient'], function($, Phaser, GameClient) {
 
 		    map = game.add.tilemap('map');
 
-		    map.addTilesetImage('Grass');
-		    map.addTilesetImage('Water');
-		    map.addTilesetImage('ground_1x1');
+		    map.addTilesetImage('bg');
+		    map.addTilesetImage('road');
+		    map.addTilesetImage('road_corners');
+		    // map.addTilesetImage('Grass');
+		    // map.addTilesetImage('Water');
+		    // map.addTilesetImage('ground_1x1');
 		    
-		    var  layer = map.createLayer('BG');
+		    var  layer = map.createLayer('Background');
 		    layer.resizeWorld();
 
-		    var walls = map.createLayer('Tile Layer 1');
+		    var walls = map.createLayer('Road');
 		    walls.resizeWorld();
 
 		    //  Set the tiles for collision.
@@ -78,9 +103,35 @@ define(['jquery','phaser', 'gameclient'], function($, Phaser, GameClient) {
 		    game.physics.p2.setBoundsToWorld(true, true, true, true, false);
 		},
 
-		_update : function() {
+		_update: function() {
 
-		}
+			//Execute the queued events for the current update cycle
+			this.executeEvent(this.eventQueue.next());
+		
+		},
+
+		_render: function(){
+
+		},
+
+		executeEvent: function(e){
+			if(typeof e !== 'undefined' && e !== null){
+				try{
+					console.log("Event executed:\n\tAction: %s\n\tData: %o", e.action, e.data);
+				}catch(e){}
+				finally{
+					console.log("Event:\n\t%o", e);
+				}	
+			}
+		},
+
+		caller: function (fn) {
+	        var gameObj = this;
+	        return (function () {
+	            return fn.apply(gameObj);
+	        });
+	    }
+
 	};
 
 	return Game;
