@@ -23,6 +23,7 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 			serverPort: 3001,
 			serverMessageQueueLimit: 16
 		};
+		
 		this.game = null;
 		this.init();
 	};
@@ -31,7 +32,7 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 
 		init: function(){
 			var wWidth = $(window).width();
-			var gameWidth = this.config.clientWindowWidthn;
+			var gameWidth = this.config.clientWindowWidth;
 			if(wWidth < gameWidth){
 				gameWidth = wWidth - 50;
 			}

@@ -1,8 +1,8 @@
-define(['ServerMessage'], function(ServerMessage){
+define(['ServerMessage', 'TCPConnectionFactory'], function(ServerMessage, TCPConnectionFactory){
 
 
 	var GameClient = function(){
-		this.client = null;
+		this.connection = null;
 		this.callbackContext = null;
 	};
 
@@ -13,23 +13,25 @@ define(['ServerMessage'], function(ServerMessage){
 			}
 			this.callbackContext = callbackContext;
 			var gameClient = this;
-			client = new WebSocket("ws://"+host+":"+port);
 
-			client.onmessage = function(e){
+			var connFactory = new TCPConnectionFactory();
+			var connection = connFactory.createSocket(host, port);
+
+			connection.onmessage = function(e){
 				console.log("Received data: %s", e.data);
 				var parsedData = JSON.parse(e.data);
 				gameClient.stateUpdate(parsedData);
 
-				client.send('asdas');
+				connection.send('asdas');
 			};
 
-			this.client = client;
+			this.connection = connection;
 
 		},
 
 		stateUpdate: function(data){
 			var msgObj = new ServerMessage(data.action, data.data, (new Date()).getTime());
-			//sanitize data to application objects
+			//sanitize data
 			this.stateUpdateCallback.call(this.callbackContext, msgObj);
 		},
 
