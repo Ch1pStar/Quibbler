@@ -14,19 +14,28 @@ requirejs.config({
 define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, GameClient, EventQueue) {
 
 
-	var Game = function(){
+	var Game = function(configFilePath){
+		//Make this get laoded from a file async as a Promise
+		this.config = {
+			mapUrl: "assets/zambies.json",
+			clientWindowWidth : 1216,
+			serverAddress: 'localhost',
+			serverPort: 3001,
+			serverMessageQueueLimit: 16
+		};
+		this.game = null;
 		this.init();
 	};
 
 	Game.prototype = {
 
 		init: function(){
-			var gameObj = this;
 			var wWidth = $(window).width();
-			var gameWidth = 1216;
+			var gameWidth = this.config.clientWindowWidthn;
 			if(wWidth < gameWidth){
 				gameWidth = wWidth - 50;
 			}
+
 			this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', { 
 				preload: this.caller(this._preload),
 				create: this.caller(this._create), 
@@ -35,16 +44,17 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 				forceSetTimeOut: false 
 			});
 
-			this.eventQueue = new EventQueue(16);
+			this.eventQueue = new EventQueue(this.config.serverMessageQueueLimit);
 
 			//Connect to game server after local client is initialized and server event handlers are set
 			this.connect()				
 		},
 
 		connect: function(){
-			var client = new GameClient();		
+			var client = new GameClient();
+			var config = this.config		
 			client.onStateUpdate(this.onStateUpdate);
-			client.connect('localhost', 3001, this);
+			client.connect(config.serverAddress, config.serverPort, this);
 		},
 
 		onStateUpdate: function(data){
@@ -52,10 +62,8 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 		},
 
 		_preload : function() {
-			var config = {
-				mapUrl: "assets/zambies.json"
-			};
 
+			var config = this.config;
 			this.game.load.tilemap('map', config.mapUrl, null, Phaser.Tilemap.TILED_JSON);
 		    this.game.load.image('ground_1x1', 'assets/ground_1x1.png');
 		    this.game.load.image('Grass', 'assets/FeThD.png');
@@ -117,7 +125,7 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 		executeEvent: function(e){
 			if(typeof e !== 'undefined' && e !== null){
 				try{
-					console.log("Event executed:\n\tAction: %s\n\tData: %o", e.action, e.data);
+					console.log("Event executed:\n\tAction: %s\n\tData: %o", e._action, e._data);
 				}catch(e){}
 				finally{
 					console.log("Event:\n\t%o", e);

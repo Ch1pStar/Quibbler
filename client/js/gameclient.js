@@ -1,4 +1,4 @@
-define([], function(){
+define(['ServerMessage'], function(ServerMessage){
 
 
 	var GameClient = function(){
@@ -28,8 +28,9 @@ define([], function(){
 		},
 
 		stateUpdate: function(data){
+			var msgObj = new ServerMessage(data.action, data.data, (new Date()).getTime());
 			//sanitize data to application objects
-			this.stateUpdateCallback.call(this.callbackContext,data);
+			this.stateUpdateCallback.call(this.callbackContext, msgObj);
 		},
 
 		onStateUpdate: function(callback){
