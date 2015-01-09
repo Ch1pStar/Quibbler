@@ -1,0 +1,11 @@
+Server - Client Networking Protocol
+
+	Server notes: 
+		The server takes snapshots of the current world state at a constant rate and broadcasts these snapshots to the clients.
+		Data packets are not sent with every single change made to some object; rather, snapshots are made that contain all entity changes since the last update. Furthmore, not all entity changes are sent to all clients all the time: to keep the network bandwidth as low as possible, only entities that are of possible interest for a client (visible, audible etc.) are updated frequently.
+		TODO: Develop a method on how to serialize server enitity changes to be send to clients.
+
+	Client notes:
+		The client sends user input packets at a certain rate of packets per second. This means two or more user commands are transmitted within the same packet.
+		When a server update is received by the client, an appropriate entity event is generated and queued in the client's main event loop\
+		TODO: Create a list of possible entity events(e.g. "move", "spawn", "attack" etc).
