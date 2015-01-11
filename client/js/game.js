@@ -26,6 +26,13 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 		
 		this.game = null;
 		this.init();
+
+		this.actionHandlers = [
+			this.entitySpawn,
+			this.entityMove,
+			this.entityAttack,
+			this.resourceChange
+		];
 	};
 
 	Game.prototype = {
@@ -54,12 +61,17 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 		connect: function(){
 			var client = new GameClient();
 			var config = this.config		
-			client.onStateUpdate(this.onStateUpdate);
+			client.onWelcomeMessage(this.handleWelcomeMessage);
+			client.onStateUpdate(this.enqueueEvent);
 			client.connect(config.serverAddress, config.serverPort, this);
 		},
 
-		onStateUpdate: function(data){
+		enqueueEvent: function(data){
 			this.eventQueue.push(data);
+		},
+
+		handleWelcomeMessage: function(data){
+
 		},
 
 		_preload : function() {
@@ -113,23 +125,39 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 		},
 
 		_update: function() {
-
 			//Execute the queued events for the current update cycle
 			this.executeEvent(this.eventQueue.next());
-		
 		},
 
 		_render: function(){
 
 		},
 
+		entitySpawn: function(data){
+			console.log("Entity spawn event!");
+		},
+
+		entityMove: function(data){
+			console.log("Entity move event!");
+		},
+		
+		entityAttack: function(data){
+			console.log("Entity attack event!");
+		},
+		
+		resourceChange: function(data){
+			console.log("Resource change event!");
+		},
+
+
 		executeEvent: function(e){
 			if(typeof e !== 'undefined' && e !== null){
 				try{
-					console.log("Event executed:\n\tAction: %s\n\tData: %o", e._action, e._data);
+					this.actionHandlers[e._action]();
+					// console.log("Event executed:\n\tAction: %s\n\tData: %o", e._action, e._data);
 				}catch(e){}
 				finally{
-					console.log("Event:\n\t%o", e);
+					// console.log("Event:\n\t%o", e);
 				}	
 			}
 		},

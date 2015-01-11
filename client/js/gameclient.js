@@ -12,28 +12,39 @@ define(['ServerMessage', 'TCPConnectionFactory'], function(ServerMessage, TCPCon
 				console.error("A  callback context is required to deliver server messages");
 			}
 			this.callbackContext = callbackContext;
-			var gameClient = this;
+			var self = this;
 
 			var connFactory = new TCPConnectionFactory();
 			var connection = connFactory.createSocket(host, port);
 
 			connection.onmessage = function(e){
-				console.log("Received data: %s", e.data);
+				// console.log("Received data: %s", e.data);
 				var parsedData = JSON.parse(e.data);
-				gameClient.stateUpdate(parsedData);
 
-				connection.send('asdas');
+				// self.receiveWelcomeMessage(parsedData);
+				self.stateUpdate(parsedData);
+
+				// connection.send('asdas');
 			};
 
 			this.connection = connection;
 
 		},
 
+		//This method receives the raw state update snapshot from the server and chops it into event messages for the game to handle
 		stateUpdate: function(data){
 			var msgObj = new ServerMessage(data.action, data.data, (new Date()).getTime());
 			//sanitize data
 			this.stateUpdateCallback.call(this.callbackContext, msgObj);
 		},
+
+		receiveWelcomeMessage: function(data){
+			this.welcomeCallback.call(this.callbackContext, data);
+		}
+
+		onWelcomeMessage: function(callback){
+			this.welcomeCallback = callback;
+		}
 
 		onStateUpdate: function(callback){
 			this.stateUpdateCallback = callback;
