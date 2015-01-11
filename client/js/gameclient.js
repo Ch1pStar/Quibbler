@@ -40,11 +40,11 @@ define(['ServerMessage', 'TCPConnectionFactory'], function(ServerMessage, TCPCon
 
 		receiveWelcomeMessage: function(data){
 			this.welcomeCallback.call(this.callbackContext, data);
-		}
+		},
 
 		onWelcomeMessage: function(callback){
 			this.welcomeCallback = callback;
-		}
+		},
 
 		onStateUpdate: function(callback){
 			this.stateUpdateCallback = callback;
