@@ -11,7 +11,7 @@ requirejs.config({
     }
 });
 
-define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, GameClient, EventQueue) {
+define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'], function($, Phaser, GameClient, EventQueue, Util) {
 
 
 	var Game = function(configFilePath){
@@ -34,6 +34,10 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 			this.entityAttack,
 			this.resourceChange
 		];
+
+		this.entities = [];
+
+		this.serverPing = 0;
 	};
 
 	Game.prototype = {
@@ -63,6 +67,7 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 			var client = new GameClient();
 			var config = this.config		
 			client.onWelcomeMessage(this.handleWelcomeMessage);
+			client.onPingMessage(this.handlePingUpdate);
 			client.onStateUpdate(this.enqueueEvent);
 			client.connect(config.serverAddress, config.serverPort, this);
 			this.client = client;
@@ -73,7 +78,15 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 		},
 
 		handleWelcomeMessage: function(data){
+			console.log("Connected to server at %s", this.client.connection.url);
 
+			//Init enitites with starting server data
+			//...
+		},
+
+		handlePingUpdate: function(ping){
+			this.serverPing = ping;
+			$('#ping-tracker').text(ping);
 		},
 
 		_preload : function() {
@@ -155,14 +168,42 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 		executeEvent: function(e){
 			if(typeof e !== 'undefined' && e !== null){
 				try{
-					this.actionHandlers[e._action]();
-					// console.log("Event executed:\n\tAction: %s\n\tData: %o", e._action, e._data);
-				}catch(e){}
+					var action = e._action;
+					if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
+
+					}else{
+						var data = e._data;
+						var entities = [];
+						if(data.isBulkOrder){
+							for (var i = 0; i < data.entityIds.length; i++) {
+								var entity = this.entities[data.entityIds[i]];
+								entities.push(entity);
+							};
+						}else{
+							entities.push(this.entities[data.entityId]);
+						}
+
+						if(action == Util.EVENT_ACTION.MOVE){
+							for (var i = 0; i < entities.length; i++) {
+								entities[i].addMoveOrder(data.dstX, data.dstY, data.addToEndOfQueue);
+							};
+						}else if(action == Util.EVENT_ACTION.ATTACK){
+							var targetEntity = this.entities[data.targetId];
+							for (var i = 0; i < entities.length; i++) {
+								entities[i].addAttackOrder(targetEntity, data.addToEndOfQueue);
+							};
+						}
+					}
+					
+				}catch(e){
+					console.error(e.message);
+				}
 				finally{
 					console.log("Event:\n\t%o", e);
 				}	
 			}
 		},
+
 
 		caller: function (fn) {
 	        var gameObj = this;

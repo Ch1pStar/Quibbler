@@ -2,6 +2,8 @@ var fs = require('fs'),
 	configPath = './server/config.json';
 var net = require("net");
 
+var gameUtils = require('./GameUtils.js');
+
 function getConfigFile(path, callback) {
     fs.readFile(path, 'utf8', function(err, json_string) {
         if(err) {
@@ -25,24 +27,38 @@ function main(config) {
 
     wss.on('connection', function(ws){
         console.log("Client connected");
+        ws.send(JSON.stringify({action: gameUtils.EVENT_ACTION.WELCOME}));
 
 
         var cntr = 0;
-        setInterval(function(){
+        // setInterval(function(){
             for (var i = 0; i < 4; i++) {
-                var str = "";
-                for (var j = 0; j < cntr; j++) {
-                    str += j*cntr;
-                };
-                var data = {action: i, data: { a: str }};
+                var entityId = i*3;
+                var data = {action: i, data: { entityId: entityId }};
                 ws.send(JSON.stringify(data));
             };
             cntr++;
-        }, 5000);
+        // }, 1000);
+
+        // setInterval(function(){
+        //     var data = {
+        //         action: gameUtils.EVENT_ACTION.PING,
+        //         data: {
+        //             'time': (new Date()).getTime()
+        //         }
+        //     };
+        //     ws.send(JSON.stringify(data));
+        // }, 100);
 
         ws.on('message', function(data){
-            console.log('Got: %s', data.toString());
-        
+            console.log('Got(%s): %s', (new Date()).getTime(), data.toString());
+
+            var parsedData = JSON.parse(data);
+
+            if(parsedData.action == gameUtils.EVENT_ACTION.PING){
+                pingReply(ws);
+            }
+
             stream.write(data);
         })
 
@@ -56,6 +72,16 @@ function main(config) {
     process.on('uncaughtException', function (e) {
         console.error('uncaughtException: ' + e);
     });
+}
+
+function pingReply(ws) {
+    var data = {
+        action: gameUtils.EVENT_ACTION.PING,
+        data: {
+            'time': (new Date()).getTime()
+        }
+    };
+    ws.send(JSON.stringify(data));
 }
 
 function startServer() {

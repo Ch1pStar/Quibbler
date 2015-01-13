@@ -1,0 +1,45 @@
+//Game Event Object examples
+
+
+//Entity move event
+{
+	action: 0, //move
+	data{
+		entityIds: [1,5,16], //array with the affected units
+		dstX: 128,
+		dstY: 32
+	},
+	receivedAt: 10.32
+}
+
+
+//Entity attack event
+{
+	action: 1, //attack
+	data{
+		entityIds: [1,5,16], //array with the affected units
+		targetId: 11
+	},
+	receivedAt: 10.32
+}
+
+//Entity ability use event
+{
+	action: 2, //ability
+	data{
+		entityId: 9 // Abilities are used by only a single entity at a time, to avoid overlapping
+		abilityId: 5,
+		targetId: 11
+	},
+	receivedAt: 10.32
+}
+
+
+//Entity produce event
+{
+	action: 3, //produce
+	data: {
+		entityId: 6,
+		producedEntityClassId: 2 //basic foot soldier
+	}
+}
