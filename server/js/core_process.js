@@ -28,7 +28,7 @@ var server = net.createServer(function(s){
 });
 
 server.listen(3002, function(){
-    console.log("Listening....");
+    console.log("Listening(3002)....");
 });
 
 process.on('uncaughtException', function (err) {

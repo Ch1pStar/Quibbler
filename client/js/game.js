@@ -25,6 +25,7 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 		};
 		
 		this.game = null;
+		this.client = null;
 		this.init();
 
 		this.actionHandlers = [
@@ -64,6 +65,7 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 			client.onWelcomeMessage(this.handleWelcomeMessage);
 			client.onStateUpdate(this.enqueueEvent);
 			client.connect(config.serverAddress, config.serverPort, this);
+			this.client = client;
 		},
 
 		enqueueEvent: function(data){
@@ -157,7 +159,7 @@ define(['jquery','phaser', 'gameclient', 'EventQueue'], function($, Phaser, Game
 					// console.log("Event executed:\n\tAction: %s\n\tData: %o", e._action, e._data);
 				}catch(e){}
 				finally{
-					// console.log("Event:\n\t%o", e);
+					console.log("Event:\n\t%o", e);
 				}	
 			}
 		},

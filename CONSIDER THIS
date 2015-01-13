@@ -1,0 +1,3 @@
+Create an interface for the client framework/engine.
+Create a wrapper class for Phaser implementing this interface.
+This will allow other frameworks/ rendering engines to be used easily.

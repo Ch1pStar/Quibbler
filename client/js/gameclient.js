@@ -31,6 +31,11 @@ define(['ServerMessage', 'TCPConnectionFactory'], function(ServerMessage, TCPCon
 
 		},
 
+		//Private tmp(possibly) function
+		_sentMessage: function(msg){
+			this.connection.send(msg);
+		},
+
 		//This method receives the raw state update snapshot from the server and chops it into event messages for the game to handle
 		stateUpdate: function(data){
 			var msgObj = new ServerMessage(data.action, data.data, (new Date()).getTime());

@@ -27,13 +27,18 @@ function main(config) {
         console.log("Client connected");
 
 
-
-        // setInterval(function(){
+        var cntr = 0;
+        setInterval(function(){
             for (var i = 0; i < 4; i++) {
-                var data = {action: i, data: { a: 1 }};
+                var str = "";
+                for (var j = 0; j < cntr; j++) {
+                    str += j*cntr;
+                };
+                var data = {action: i, data: { a: str }};
                 ws.send(JSON.stringify(data));
             };
-        // }, 1000);
+            cntr++;
+        }, 5000);
 
         ws.on('message', function(data){
             console.log('Got: %s', data.toString());
