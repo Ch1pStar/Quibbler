@@ -1,3 +1,6 @@
+/**
+ * This is a config file, defining constant values
+ */
 define({
   EVENT_ACTION: Object.freeze({
     MOVE: 0,

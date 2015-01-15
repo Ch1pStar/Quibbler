@@ -1,5 +1,12 @@
+/**
+ * A simple circular buffer structure
+ */
 define([], function(){
 
+  /**
+   * @constructor
+   * @param {int}
+   */
   function EventQueue(size){
     if(typeof size !== 'number'){
       throw new Error("'"+size.toString()+ "' is not a valid size!");
@@ -12,6 +19,10 @@ define([], function(){
     this._tail = 0;
   }
 
+  /**
+   * Adds an item at the end of the queue
+   * @param  {Object}
+   */
   EventQueue.prototype.push = function(event) {
     this._data[this._tail] = event;
       this._tail = (this._tail + 1) % this._size;
@@ -20,6 +31,11 @@ define([], function(){
       }
   };
 
+  /**
+   * Returns the first in line item in the queue
+   * and moves the _head pointer to the next item
+   * @return {Object}
+   */
   EventQueue.prototype.next = function() {
     var event = this._data[this._head];
     this._data[this._head] = null;
@@ -27,10 +43,18 @@ define([], function(){
     return event;
   };
 
+  /**
+   * Assert if the buffer is empty
+   * @return {Boolean}
+   */
   EventQueue.prototype.empty = function() {
     return this._tail == this._head;
   };
 
+  /**
+   * Assert if the buffer is full
+   * @return {Boolean}
+   */
   EventQueue.prototype.full = function() {
     return (this._tail+1)%this._size == this._head;
   };

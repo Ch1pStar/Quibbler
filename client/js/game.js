@@ -1,3 +1,7 @@
+/**
+ * This is the core process of the game, controling all game systems.
+ */
+
 requirejs.config({
   paths: {
     phaser:   'lib/phaser.min',
@@ -10,19 +14,27 @@ requirejs.config({
   }
 });
 
-define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'], 
+define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'], 
       function($, Phaser, GameClient, EventQueue, Util) {
 
-
-  var Game = function(configFilePath){
-    //Make this get laoded from a file async as a Promise
-    this.config = {
-      mapUrl: "assets/zambies.json",
-      clientWindowWidth : 1216,
-      serverAddress: 'localhost',
-      serverPort: 3001,
-      serverMessageQueueLimit: 100
-    };
+  /**
+   * @public
+   * @constructor
+   * @param {Object}
+   */
+  var Game = function(config){
+    if(typeof config !== 'undefined'){
+      this.config = config;
+    }else{
+      //Default config options
+      this.config = {
+        mapUrl: 'assets/zambies.json',
+        clientWindowWidth : 1216,
+        serverAddress: 'localhost',
+        serverPort: 3001,
+        serverMessageQueueLimit: 100
+      };
+    }
     
     this.game = null;
     this.client = null;
@@ -34,6 +46,10 @@ define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'],
 
   Game.prototype = {
 
+    /**
+     * @public
+     * Creates the game world and starts the game loop
+     */
     init: function(){
       var wWidth = $(window).width();
       var gameWidth = this.config.clientWindowWidth;
@@ -42,13 +58,12 @@ define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'],
       }
 
       this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', {
-        preload: this.caller(this._preload),
-        create: this.caller(this._create), 
-        update: this.caller(this._update), 
-        render: this.caller(this._render), 
+        preload: this._caller(this._preload),
+        create: this._caller(this._create), 
+        update: this._caller(this._update), 
+        render: this._caller(this._render), 
         forceSetTimeOut: false 
       });
-
       this.eventQueue = new EventQueue(this.config.serverMessageQueueLimit);
 
       //Connect to game server after local client is initialized 
@@ -56,7 +71,14 @@ define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'],
       this.connect()        
     },
 
+    /**
+     * @private
+     * Creates a GameClient object
+     * and connects to the remote server used to communicate
+     * @return {[type]}
+     */
     connect: function(){
+      //TODO - Create the GameClient object with a factory instead
       var client = new GameClient();
       var config = this.config    
       client.onWelcomeMessage(this.handleWelcomeMessage);
@@ -66,22 +88,42 @@ define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'],
       this.client = client;
     },
 
-    enqueueEvent: function(data){
-      this.eventQueue.push(data);
+    /**
+     * @public
+     * Add a GameMessageEvent object to the command queue of the game
+     * to be executed
+     * @param  {GameMessageEvent}
+     */
+    enqueueEvent: function(e){
+      this.eventQueue.push(e);
     },
 
+    /**
+     * @public
+     * Welcome message handler
+     * @param  {Object}
+     */
     handleWelcomeMessage: function(data){
-      console.log("Connected to server - %s", this.client.connection.url);
+      console.log('Connected to server - %s', this.client.connection.url);
 
       //Init enitites with starting server data
       //...
     },
 
+    /**
+     * @public
+     * Ping update handler
+     * @param  {int}
+     */
     handlePingUpdate: function(ping){
       this.serverPing = ping;
       $('#ping-tracker').text(ping);
     },
 
+    /**
+     * @private
+     * Prelaod method used by Phaser to initialize resources
+     */
     _preload : function() {
 
       var config = this.config;
@@ -98,6 +140,11 @@ define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'],
       
     },
 
+
+    /**
+     * @private
+     * Create method used by Phaser to create initial game state
+     */
     _create : function() {
       var game = this.game;
       
@@ -124,30 +171,51 @@ define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'],
         //  Do this BEFORE generating the p2 bodies below.
         map.setCollisionBetween(1, 12);
 
-        //  Convert the tilemap layer into bodies. Only tiles that collide (see above) are created.
-        //  This call returns an array of body objects which you can perform addition actions on if
-        //  required. There is also a parameter to control optimising the map build.
+        //  Convert the tilemap layer into bodies. 
+        //  Only tiles that collide (see above) are created.
+        //  This call returns an array of body objects which
+        //  you can perform addition actions on if required.
+        //  There is also a parameter to control optimising the map build.
         var wallTiles = game.physics.p2.convertTilemap(map, walls);
 
         game.physics.p2.setBoundsToWorld(true, true, true, true, false);
     },
 
+    /**
+     * @private
+     * Update method used to move the game state a step further
+     */
     _update: function() {
+
       //Execute the queued events for the current update cycle
       if(!this.eventQueue.empty()){
         this.executeEvent(this.eventQueue.next());      
       }
     },
 
+    /**
+     * @private
+     * Render method used to render game state
+     */
     _render: function(){
 
     },
     
+    /**
+     * @private
+     * Resource change command handler
+     * @param  {Object}
+     */
     resourceChange: function(data){
-      console.log("Resource change event!");
+      console.log('Resource change event!');
     },
 
 
+    /**
+     * Executes the given event,
+     * sending necessary commands to the game components(audio, entities etc)
+     * @param  {GameMessageEvent}
+     */
     executeEvent: function(e){
       try{
         var action = e._action;
@@ -187,17 +255,16 @@ define(['jquery','phaser', 'gameclient', 'EventQueue', 'util'],
         console.error(e.message);
       }
       finally{
-        console.log("Event:\n\t%o", e);
+        console.log('Event:\n\t%o', e);
       } 
     },
 
-
-    caller: function (fn) {
-          var gameObj = this;
-          return (function () {
-              return fn.apply(gameObj);
-          });
-      }
+    _caller: function (fn) {
+      var gameObj = this;
+      return (function () {
+          return fn.apply(gameObj);
+      });
+    }
 
   };
 
