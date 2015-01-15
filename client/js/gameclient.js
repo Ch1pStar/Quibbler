@@ -1,3 +1,7 @@
+/*
+ *  A Network layer class, takes care of communicating with a remote server
+ *  and parsing data into game commands.
+ */
 define(['ServerMessage', 'TCPConnectionFactory', 'util'], function(ServerMessage, TCPConnectionFactory, Util){
 
 	var GameClient = function(config){
@@ -66,7 +70,6 @@ define(['ServerMessage', 'TCPConnectionFactory', 'util'], function(ServerMessage
 
 		onOpen: function(){
 			this.connected = true;
-
 			this.enablePingPolling();
 		},
 
@@ -99,10 +102,21 @@ define(['ServerMessage', 'TCPConnectionFactory', 'util'], function(ServerMessage
 
 		//This method receives the raw state update snapshot from the server and chops it into events for the game to handle
 		stateUpdate: function(data){
-			var msgObj = new ServerMessage(data.action, data.data, (new Date()).getTime());
 			//sanitize data
+			var msgObj = new ServerMessage(data.action, data.data, (new Date()).getTime());
+			var msgObjsArr = [];
+
+			/* 
+			 * TODO Add actual logic - create game process event messages from the server snapshot
+			 */
+			msgObjsArr.push(msgObj);
+			
+
+
 			if(this.stateUpdateCallback != null){
-				this.stateUpdateCallback.call(this.callbackContext, msgObj);			
+				for (var i = 0; i < msgObjsArr.length; i++) {
+					this.stateUpdateCallback.call(this.callbackContext, msgObjsArr[i]);			
+				};
 			}else{
 				console.error("Received a server update, but missing a state update callback");
 			}
