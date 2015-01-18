@@ -27,45 +27,33 @@ function main(config) {
 
     wss.on('connection', function(ws){
         console.log("Client connected");
-        ws.send(JSON.stringify({action: gameUtils.EVENT_ACTION.WELCOME}));
-
+        // console.log(ws);
+        ws.send(JSON.stringify({a: gameUtils.EVENT_ACTION.WELCOME}));
 
         var cntr = 0;
         // setInterval(function(){
             for (var i = 0; i < 4; i++) {
                 var entityId = i*3;
-                var data = {action: i, data: { entityId: entityId }};
+                var data = {a: i, d: { entityId: entityId }};
                 ws.send(JSON.stringify(data));
             };
             cntr++;
         // }, 1000);
-
-        // setInterval(function(){
-        //     var data = {
-        //         action: gameUtils.EVENT_ACTION.PING,
-        //         data: {
-        //             'time': (new Date()).getTime()
-        //         }
-        //     };
-        //     ws.send(JSON.stringify(data));
-        // }, 100);
 
         ws.on('message', function(data){
             console.log('Got(%s): %s', (new Date()).getTime(), data.toString());
 
             var parsedData = JSON.parse(data);
 
-            if(parsedData.action == gameUtils.EVENT_ACTION.PING){
+            if(parsedData.a == gameUtils.EVENT_ACTION.PING){
                 pingReply(ws);
+            }else{
+                stream.write(data);
             }
-
-            stream.write(data);
         })
 
-
-
         ws.on('close', function(){
-            console.log("Client - disconnected from server!");
+            console.log("Client disconnected from server!");
         })
     });
 
@@ -76,9 +64,9 @@ function main(config) {
 
 function pingReply(ws) {
     var data = {
-        action: gameUtils.EVENT_ACTION.PING,
-        data: {
-            'time': (new Date()).getTime()
+        a: gameUtils.EVENT_ACTION.PING,
+        d: {
+            t: (new Date()).getTime()
         }
     };
     ws.send(JSON.stringify(data));

@@ -30,7 +30,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
       this.config = {
         mapUrl: 'assets/zambies.json',
         clientWindowWidth : 1216,
-        serverAddress: 'localhost',
+        serverAddress: window.location.hostname,
         serverPort: 3001,
         serverMessageQueueLimit: 100
       };
@@ -38,10 +38,13 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
     
     this.game = null;
     this.client = null;
-    this.init();
+    this.cursors;
     this.entities = [];
-
     this.serverPing = 0;
+    
+
+    //Call after all properties are declared
+    this.init();
   };
 
   Game.prototype = {
@@ -58,10 +61,10 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
       }
 
       this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', {
-        preload: this._caller(this._preload),
-        create: this._caller(this._create), 
-        update: this._caller(this._update), 
-        render: this._caller(this._render), 
+        preload: this.caller(this.preload),
+        create: this.caller(this.create), 
+        update: this.caller(this.update), 
+        render: this.caller(this.render), 
         forceSetTimeOut: false 
       });
       this.eventQueue = new EventQueue(this.config.serverMessageQueueLimit);
@@ -124,10 +127,11 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
      * @private
      * Prelaod method used by Phaser to initialize resources
      */
-    _preload : function() {
+    preload : function() {
 
       var config = this.config;
-      this.game.load.tilemap('map', config.mapUrl, null, Phaser.Tilemap.TILED_JSON);
+      this.game.load.tilemap('map', config.mapUrl, null, 
+                              Phaser.Tilemap.TILED_JSON);
       this.game.load.image('ground_1x1', 'assets/ground_1x1.png');
       this.game.load.image('Grass', 'assets/FeThD.png');
       this.game.load.image('Water', 'assets/water_1x1.png');
@@ -137,67 +141,74 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
       this.game.load.image('road', 'assets/road_pattern.png');
       this.game.load.image('road_corners', 'assets/road_corners.png');
       
-      
     },
-
 
     /**
      * @private
      * Create method used by Phaser to create initial game state
      */
-    _create : function() {
+    create : function() {
       var game = this.game;
       
-        game.physics.startSystem(Phaser.Physics.P2JS);
+      game.physics.startSystem(Phaser.Physics.P2JS);
 
-        game.stage.backgroundColor = '#2d2d2d';
+      game.stage.backgroundColor = '#2d2d2d';
 
-        map = game.add.tilemap('map');
+      map = game.add.tilemap('map');
 
-        map.addTilesetImage('bg');
-        map.addTilesetImage('road');
-        map.addTilesetImage('road_corners');
-        // map.addTilesetImage('Grass');
-        // map.addTilesetImage('Water');
-        // map.addTilesetImage('ground_1x1');
-        
-        var  layer = map.createLayer('Background');
-        layer.resizeWorld();
+      map.addTilesetImage('bg');
+      map.addTilesetImage('road');
+      map.addTilesetImage('road_corners');
+      // map.addTilesetImage('Grass');
+      // map.addTilesetImage('Water');
+      // map.addTilesetImage('ground_1x1');
 
-        var walls = map.createLayer('Road');
-        walls.resizeWorld();
+      var  layer = map.createLayer('Background');
+      layer.resizeWorld();
 
-        //  Set the tiles for collision.
-        //  Do this BEFORE generating the p2 bodies below.
-        map.setCollisionBetween(1, 12);
+      var walls = map.createLayer('Road');
+      walls.resizeWorld();
 
-        //  Convert the tilemap layer into bodies. 
-        //  Only tiles that collide (see above) are created.
-        //  This call returns an array of body objects which
-        //  you can perform addition actions on if required.
-        //  There is also a parameter to control optimising the map build.
-        var wallTiles = game.physics.p2.convertTilemap(map, walls);
+      //  Set the tiles for collision.
+      //  Do this BEFORE generating the p2 bodies below.
+      map.setCollisionBetween(1, 12);
 
-        game.physics.p2.setBoundsToWorld(true, true, true, true, false);
+      //  Convert the tilemap layer into bodies. 
+      //  Only tiles that collide (see above) are created.
+      //  This call returns an array of body objects which
+      //  you can perform addition actions on if required.
+      //  There is also a parameter to control optimising the map build.
+      var wallTiles = game.physics.p2.convertTilemap(map, walls);
+
+      game.physics.p2.setBoundsToWorld(true, true, true, true, false);
+
+      // this.cursors = game.input.keyboard.createCursorKeys();
+
+      game.input.onDown.add(this.mouseClickHandler, this);
+      game.input.keyboard.addCallbacks(this, this.keyboardDownHandler, 
+                      this.keyboardUpHandler, this.keyboardPressHandler);
     },
 
     /**
      * @private
      * Update method used to move the game state a step further
      */
-    _update: function() {
+    update: function() {
 
       //Execute the queued events for the current update cycle
       if(!this.eventQueue.empty()){
         this.executeEvent(this.eventQueue.next());      
       }
+
+      //Handle input devices(mouse, keyboard) current state
+      this.resolveInputState();
     },
 
     /**
      * @private
      * Render method used to render game state
      */
-    _render: function(){
+    render: function(){
 
     },
     
@@ -210,6 +221,47 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
       console.log('Resource change event!');
     },
 
+    /**
+     * Client side input handler, used to highlight hovered enitites,
+     * show help texts et cetera
+     */
+    resolveInputState: function(){
+      var mousePointer = this.game.input.mousePointer;
+      //TODO - Add actual UI interaction
+      $('#cursor-tracker').text("X: "+mousePointer.x+" Y: "+mousePointer.y);
+    },
+
+    /**
+     * Mouse click handler
+     * @param  {Phaser.MousePointer} pointer The MousePointer object
+     */
+    mouseClickHandler: function(pointer){
+      console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
+      this.client.sendClickMessage(pointer.x, pointer.y);
+    },
+
+    /**
+     * A handler for when a key is pressed down
+     * @param  {Phaser.KeyboardEvent} e
+     */
+    keyboardDownHandler: function(e){
+    
+    },
+
+    /**
+     * A handler for when a key is released
+     * @param  {Phaser.KeyboardEvent} e
+     */
+    keyboardUpHandler: function(e){
+
+      console.log(e);
+      // console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
+      // this.client.sendClickMessage(pointer.x, pointer.y);
+    },
+
+    keyboardPressHandler: function(keyAsChar){
+    
+    },
 
     /**
      * Executes the given event,
@@ -218,7 +270,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
      */
     executeEvent: function(e){
       try{
-        var action = e._action;
+        var action = e.action;
 
         if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
           // Is a resource change event needed?
@@ -228,7 +280,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
 
         }else{
           // Entity event
-          var data = e._data;
+          var data = e.data;
           var entities = [];
           if(data.isBulkOrder){
             for (var i = 0; i < data.entityIds.length; i++) {
@@ -241,7 +293,8 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
 
           if(action == Util.EVENT_ACTION.MOVE){
             for (var i = 0; i < entities.length; i++) {
-              entities[i].addMoveOrder(data.dstX, data.dstY, data.addToEndOfQueue);
+              entities[i].addMoveOrder(data.dstX, data.dstY, 
+                                        data.addToEndOfQueue);
             };
           }else if(action == Util.EVENT_ACTION.ATTACK){
             var targetEntity = this.entities[data.targetId];
@@ -259,7 +312,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
       } 
     },
 
-    _caller: function (fn) {
+    caller: function (fn) {
       var gameObj = this;
       return (function () {
           return fn.apply(gameObj);

@@ -11,9 +11,9 @@ define([], function(){
  * @param {int}
  */
   function GameMessageEvent(action, data, timeReceived){
-    this._action = action;
-    this._data = data;
-    this._timeReceived = timeReceived;
+    this.action = action;
+    this.data = data;
+    this.timeReceived = timeReceived;
   }
 
   /**
@@ -21,7 +21,11 @@ define([], function(){
    * @return {Object}
    */
   GameMessageEvent.prototype.read = function() {
-    return {action: this._action, data: this._data};
+    return {
+      action: this.action, 
+      data: this.data,
+      timeReceived: this._timeReceived
+    };
   };
 
   return GameMessageEvent;

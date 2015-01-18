@@ -19,6 +19,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
     this.welcomeCallback = null;
     this.stateUpdateCallback = null;
     this.pingCallback = null;
+    this.lastPingSentAt = 0;
     
     if(typeof config !== 'undefined'){
       this.config = config;
@@ -89,7 +90,8 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
       var self = this;
       if(!disable){
         this.pingPollingIntervalId = setInterval(function(){
-          self._sendRawMessage(JSON.stringify({action: Util.EVENT_ACTION.PING}));
+          self._sendRawMessage(JSON.stringify({a: Util.EVENT_ACTION.PING}));
+          self.lastPingSentAt = (new Date()).getTime();
         }, this.config.pingPollFrequency);
         this.pingPolling = true;
       }else{
@@ -107,7 +109,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
      */
     onOpen: function(){
       this.connected = true;
-      this.enablePingPolling();
+      // this.enablePingPolling();
     },
 
     /**
@@ -126,26 +128,15 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
     onMessage: function(e){
       // console.log('Received data: %s', e.data);
       var parsedData = JSON.parse(e.data);
+      var msgObj = new GameMessageEvent(parsedData.a, 
+                    parsedData.d, (new Date()).getTime());
 
-      if(parsedData.action == Util.EVENT_ACTION.WELCOME){
-        this.receiveWelcomeMessage(parsedData);
-      }else if(parsedData.action == Util.EVENT_ACTION.PING){
-        this.receivePingMessage(parsedData);
+      if(msgObj.action == Util.EVENT_ACTION.WELCOME){
+        this.receiveWelcomeMessage(msgObj);
+      }else if(msgObj.action == Util.EVENT_ACTION.PING){
+        this.receivePingMessage(msgObj);
       }else{
-        this.stateUpdate(parsedData);
-      }
-    },
-
-    /**
-     * @private
-     * Send a raw message to the server
-     * @param  {String}
-     */
-    _sendRawMessage: function(msg){
-      if(this.connected && this.connection){
-        return  this.connection.send(msg);
-      }else{
-        console.error('No connection to remote server!');
+        this.stateUpdate(msgObj);
       }
     },
 
@@ -155,9 +146,8 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
      * and chops it into events for the game to handle
      * @param  {Object}
      */
-    stateUpdate: function(data){
+    stateUpdate: function(msgObj){
       //sanitize data
-      var msgObj = new GameMessageEvent(data.action, data.data, (new Date()).getTime());
       var msgObjsArr = [];
 
       /* 
@@ -166,12 +156,10 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
        */
       msgObjsArr.push(msgObj);
       
-
-
       //Push generated events to core process message queue
       if(this.stateUpdateCallback != null){
         for (var i = 0; i < msgObjsArr.length; i++) {
-          this.stateUpdateCallback.call(this.callbackContext, msgObjsArr[i]);     
+          this.stateUpdateCallback.call(this.callbackContext, msgObjsArr[i]); 
         };
       }else{
         console.error('Received a server update, '+
@@ -188,21 +176,22 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
       if(this.welcomeCallback != null){
         this.welcomeCallback.call(this.callbackContext, data);
       }else{
-        console.error('Received a server welcome message, but missing a callback!');
+        console.error('Received a welcome message, but missing a callback!');
       }
     },
 
 
     /**
      * @private
-     * Forwards a ping response message from the server
+     * Handles and forwards a ping response message from the server
+     * to the specified callback
      * @param  {Object}
      */
     receivePingMessage: function(msg){
       if(this.pingCallback != null){
-        var now = (new Date()).getTime();
-        var ts = msg.data.time;
-        var ping = Math.abs(now - ts);
+        var ts = msg.data.t;
+        // var ts = this.lastPingSentAt;
+        var ping = Math.abs(msg.timeReceived - ts);
         this.pingCallback.call(this.callbackContext, ping);
       }     
     },
@@ -232,8 +221,52 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
      */
     onStateUpdate: function(callback){
       this.stateUpdateCallback = callback;
+    },
+
+    /**
+     * @private
+     * Send a raw message to the server
+     * @param  {String}
+     */
+    _sendRawMessage: function(msg){
+      if(this.connected && this.connection){
+        return  this.connection.send(msg);
+      }else{
+        console.error('No connection to remote server!');
+      }
+    },
+
+    /**
+     * Sends a mouse click message to the server
+     * @param  {int} x X coordinate of the click 
+     * @param  {int} y Y coordinate of the click
+     */
+    sendClickMessage: function(x, y){
+      var data = {
+        i: Util.EVENT_INPUT.MOUSE_CLICK,
+        d: {
+          x:x,
+          y:y
+        }
+      };
+      this._sendRawMessage(JSON.stringify(data));
+    },
+
+    /**
+     * Sends a keyboard keypress message to the server
+     * @param  {int} code They key code of the pressed key
+     */
+    sendKeypressMessage: function(code){
+      var data = {
+        i: Util.EVENT_INPUT.KEYBOARD_KEYPRESS,
+        d: {
+          c:code
+        }
+      };
+      this._sendRawMessage(JSON.stringify(data));
     }
-  }
+
+  };
 
   return GameClient;
 })
