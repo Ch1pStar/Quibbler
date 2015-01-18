@@ -1,0 +1,16 @@
+The update() gets the most recent event message from the eventQueue container.
+
+The frames container holds the last three server updates for the entity.
+Each item of the frames container holds the state data(position, rotation etc)
+of the enitity for a given server update.
+
+
+On a 'move' event, the state change data(position vector, rotation vector etc)
+is pushed into the frames container.
+
+The time period between each item in the frames container is the time,
+after which it is expected for a new state frame to arrive.
+
+In the render() method, the position for the current time is computed
+by interpolating between the first(oldest) element in the frames container
+and the next one available.

@@ -1,0 +1,38 @@
+Research manager classes for game systems
+
+Example:
+
+IManager Interface - Has a process() method, 
+that handles updating contained object's states.
+
+EntityManager - Holds references to all entities.
+
+This would decouple unnecessary static dependancies on game systems.
+We could have a game without an audio system.
+
+
+Example execution flow:
+
+Game:
+	gameSystemsContainer: Array<IManager>
+
+	update():
+		...
+		Iterate over the contents of gameSystemsManager
+		Call the process() method on each IManager object
+		....
+
+EntityManager:
+	entities: Array<IManager>
+
+	process():
+		...
+		Iterate over the enitites set
+		Call the update() method on each Entity object
+		Call the render() method on each Entity object
+
+
+Note:
+	The game process will have to dispatch event messages to the EntityManager,
+	which would have to dispatch them to the target entities,
+	leading to possible unnecessary overhead.

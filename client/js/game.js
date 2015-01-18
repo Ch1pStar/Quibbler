@@ -140,7 +140,8 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
       this.game.load.image('bg', 'assets/bg_tile.png');
       this.game.load.image('road', 'assets/road_pattern.png');
       this.game.load.image('road_corners', 'assets/road_corners.png');
-      
+
+      this.game.time.advancedTiming = true;
     },
 
     /**
@@ -209,7 +210,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
      * Render method used to render game state
      */
     render: function(){
-
+      $('#fps-tracker').text(this.game.time.fps);
     },
     
     /**
@@ -253,10 +254,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
      * @param  {Phaser.KeyboardEvent} e
      */
     keyboardUpHandler: function(e){
-
-      console.log(e);
-      // console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
-      // this.client.sendClickMessage(pointer.x, pointer.y);
+      this.client.sendKeypressMessage(e.keyCode);
     },
 
     keyboardPressHandler: function(keyAsChar){
@@ -281,29 +279,29 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
         }else{
           // Entity event
           var data = e.data;
-          var entities = [];
+          var currEntities = [];
           if(data.isBulkOrder){
             for (var i = 0; i < data.entityIds.length; i++) {
               var entity = this.entities[data.entityIds[i]];
-              entities.push(entity);
+              currEntities.push(entity);
             };
           }else{
-            entities.push(this.entities[data.entityId]);
+            currEntities.push(this.entities[data.entityId]);
           }
 
           if(action == Util.EVENT_ACTION.MOVE){
             for (var i = 0; i < entities.length; i++) {
-              entities[i].addMoveOrder(data.dstX, data.dstY, 
-                                        data.addToEndOfQueue);
-            };
+              currEntities[i].addMoveOrder(data.dstX, data.dstY, 
+                                         data.addToEndOfQueue);
+            }
           }else if(action == Util.EVENT_ACTION.ATTACK){
             var targetEntity = this.entities[data.targetId];
             for (var i = 0; i < entities.length; i++) {
-              entities[i].addAttackOrder(targetEntity, data.addToEndOfQueue);
-            };
+              currEntities[i].addAttackOrder(targetEntity, 
+                                      data.addToEndOfQueue);
+            }
           }
         }
-        
       }catch(e){
         console.error(e.message);
       }
