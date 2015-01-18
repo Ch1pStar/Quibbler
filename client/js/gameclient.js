@@ -109,7 +109,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
      */
     onOpen: function(){
       this.connected = true;
-      this.enablePingPolling();
+      // this.enablePingPolling();
     },
 
     /**
