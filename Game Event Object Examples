@@ -47,7 +47,6 @@
 		targetY: 32,
 		targetHealth: 100,
 		rotation: 90 // 0 - 180
-		playingAnimation: 5 // spawning animation
 		//....
 	}
 }

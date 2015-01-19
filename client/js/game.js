@@ -14,8 +14,10 @@ requirejs.config({
   }
 });
 
-define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 'util', 'lib/underscore-min'], 
-      function($, Phaser, GameClient, EventQueue, GameMessageEvent, Util, _) {
+define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 
+  'util','entities/entitymanager', 'audio/audiomanager', 'lib/underscore-min', 'core/class'],
+      function($, Phaser, GameClient, EventQueue, GameMessageEvent, Util,  
+                                                EntityManager, AudioManager) {
 
   /**
    * @public
@@ -39,6 +41,8 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 'util
     this.game = null;
     this.client = null;
     this.serverPing = 0;
+    this.eventQueue = new EventQueue(this.config.serverMessageQueueLimit);
+    this.gameSystems = null;
     
     //Call after all properties are declared
     this.init();
@@ -64,7 +68,12 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 'util
         render: this.caller(this.render), 
         forceSetTimeOut: false 
       });
-      this.eventQueue = new EventQueue(this.config.serverMessageQueueLimit);
+
+
+      this.gameSystems = [
+        new EntityManager(this.game),
+        new AudioManager()
+      ];
 
       //Connect to game server after local client is initialized 
       //and server event handlers are set
@@ -138,6 +147,9 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 'util
       this.game.load.image('road', 'assets/road_pattern.png');
       this.game.load.image('road_corners', 'assets/road_corners.png');
 
+
+      this.game.load.image('simple_tile', 'assets/simple_tile.png');
+
       this.game.time.advancedTiming = true;
     },
 
@@ -195,6 +207,10 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 'util
       if(!this.eventQueue.empty()){
         this.executeEvent(this.eventQueue.next());      
       }
+
+      for (var i = 0; i < this.gameSystems.length; i++) {
+        this.gameSystems[i].process();
+      };
 
       //Handle input devices(mouse, keyboard) current state
       this.resolveInputState();
