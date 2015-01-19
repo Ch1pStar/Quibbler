@@ -14,8 +14,8 @@ requirejs.config({
   }
 });
 
-define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'], 
-      function($, Phaser, GameClient, EventQueue, Util) {
+define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 'util', 'lib/underscore-min'], 
+      function($, Phaser, GameClient, EventQueue, GameMessageEvent, Util, _) {
 
   /**
    * @public
@@ -38,11 +38,8 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
     
     this.game = null;
     this.client = null;
-    this.cursors;
-    this.entities = [];
     this.serverPing = 0;
     
-
     //Call after all properties are declared
     this.init();
   };
@@ -182,8 +179,6 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'util'],
       var wallTiles = game.physics.p2.convertTilemap(map, walls);
 
       game.physics.p2.setBoundsToWorld(true, true, true, true, false);
-
-      // this.cursors = game.input.keyboard.createCursorKeys();
 
       game.input.onDown.add(this.mouseClickHandler, this);
       game.input.keyboard.addCallbacks(this, this.keyboardDownHandler, 

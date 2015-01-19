@@ -1,45 +1,53 @@
 //Game Event Object examples
 
 
-//Entity move event
+//Entity state update
 {
-	action: 0, //move
+	action: 0, //state update
 	data{
-		entityIds: [1,5,16], //array with the affected units
-		dstX: 128,
-		dstY: 32
+		16: { // entity id
+			targetX: 128,
+			targetY: 32,
+			targetHealth: 70,
+			rotation: 70 // 0 - 180
+			playingAnimation: 1 // move
+			//....
+		},
+		13: { //entity id
+			targetX: 228,
+			targetY: 602,
+			targetHealth: 20,
+			rotation: 45 //0 - 180
+			playingAnimation: 2 // basic attack
+			//....
+		}
 	},
-	receivedAt: 10.32
+	timeStamp: 10.32
 }
 
 
-//Entity attack event
+//Resource change
 {
-	action: 1, //attack
+	action: 1, //resource change
 	data{
-		entityIds: [1,5,16], //array with the affected units
-		targetId: 11
+		resourceId: 0,
+		newValue: 1255
 	},
-	receivedAt: 10.32
-}
-
-//Entity ability use event
-{
-	action: 2, //ability
-	data{
-		entityId: 9 // Abilities are used by only a single entity at a time, to avoid overlapping
-		abilityId: 5,
-		targetId: 11
-	},
-	receivedAt: 10.32
+	timeStamp: 10.32
 }
 
 
 //Entity produce event
 {
-	action: 3, //produce
+	action: 2, //produce
 	data: {
 		entityId: 6,
 		producedEntityClassId: 2 //basic foot soldier
+		targetX: 128,
+		targetY: 32,
+		targetHealth: 100,
+		rotation: 90 // 0 - 180
+		playingAnimation: 5 // spawning animation
+		//....
 	}
 }

@@ -3,7 +3,7 @@
  *  and parsing data into game commands.
  */
 
-define(['gamemessageevent', 'TCPConnectionFactory', 'util'], 
+define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'], 
       function(GameMessageEvent, TCPConnectionFactory, Util){
 
   /**
@@ -26,6 +26,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
     }else{
       //Default config options
       this.config  = {
+        transferMethod: 0, //binary
         pingPollFrequency: 1000,
         incomingPacketDelay: 0
       };
@@ -60,6 +61,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
 
       var connFactory = new TCPConnectionFactory();
       var connection = connFactory.createSocket(host, port);
+      connection.binaryType = "arraybuffer";
 
       connection.onmessage = function(e) {
         var delay = self.config.incomingPacketDelay;
@@ -78,37 +80,12 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
     },
 
     /**
-     * @public
-     * Enables client polling for packet travel time
-     * @param  {Boolean}
-     */
-    enablePingPolling: function(disable){
-      if(typeof disable == 'undefined'){
-        disable = false;
-      }
-
-      var self = this;
-      if(!disable){
-        this.pingPollingIntervalId = setInterval(function(){
-          self._sendRawMessage(JSON.stringify({a: Util.EVENT_ACTION.PING}));
-          self.lastPingSentAt = (new Date()).getTime();
-        }, this.config.pingPollFrequency);
-        this.pingPolling = true;
-      }else{
-        if(this.pingPolling && this.pingPollingIntervalId != null){
-          clearInterval(this.pingPollingIntervalId);
-          this.pingPolling = false;
-        }
-      }
-
-    },
-
-    /**
      * @private
      * Callback for the 'open' event
      */
     onOpen: function(){
       this.connected = true;
+
       // this.enablePingPolling();
     },
 
@@ -126,10 +103,8 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
      * @param  {MessageEvent}
      */
     onMessage: function(e){
-      // console.log('Received data: %s', e.data);
-      var parsedData = JSON.parse(e.data);
-      var msgObj = new GameMessageEvent(parsedData.a, 
-                    parsedData.d, (new Date()).getTime());
+      var msgObj = this.parseMessage(e);
+      // console.log('Received data: %o', msgObj);
 
       if(msgObj.action == Util.EVENT_ACTION.WELCOME){
         this.receiveWelcomeMessage(msgObj);
@@ -166,7 +141,6 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
           'but missing a state update callback!');
       }
     },
-
     /**
      * @private
      * Forwards a welcome message to the game process
@@ -189,11 +163,38 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
      */
     receivePingMessage: function(msg){
       if(this.pingCallback != null){
-        var ts = msg.data.t;
-        // var ts = this.lastPingSentAt;
-        var ping = Math.abs(msg.timeReceived - ts);
+        // var ts = msg.data[0];
+        var ts = this.lastPingSentAt;
+        var ping = Math.abs(msg.timeStamp - ts);
         this.pingCallback.call(this.callbackContext, ping);
       }     
+    },
+
+    /**
+     * @public
+     * Enables client polling for packet travel time
+     * @param  {Boolean} disable - If true, this will stop the polling if it is running
+     */
+    enablePingPolling: function(disable){
+      if(typeof disable == 'undefined'){
+        disable = false;
+      }
+
+      var self = this;
+      if(!disable){
+        this.pingPollingIntervalId = setInterval(function(){
+          self.lastPingSentAt = (new Date()).getTime();
+          var data = new GameMessageEvent(Util.EVENT_ACTION.PING, null, self.lastPingSentAt);
+          self._sendMessage(data);
+        }, this.config.pingPollFrequency);
+        this.pingPolling = true;
+      }else{
+        if(this.pingPolling && this.pingPollingIntervalId != null){
+          clearInterval(this.pingPollingIntervalId);
+          this.pingPolling = false;
+        }
+      }
+
     },
 
     /**
@@ -226,11 +227,14 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
     /**
      * @private
      * Send a raw message to the server
-     * @param  {String}
+     * @param  {GameMessageEvent}
      */
-    _sendRawMessage: function(msg){
+    _sendMessage: function(msg){
       if(this.connected && this.connection){
-        return  this.connection.send(msg);
+        var data = msg.prepareForTransfer(this.config.transferMethod);
+        if(data){
+          return this.connection.send(data);
+        }
       }else{
         console.error('No connection to remote server!');
       }
@@ -242,14 +246,9 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
      * @param  {int} y Y coordinate of the click
      */
     sendClickMessage: function(x, y){
-      var data = {
-        i: Util.EVENT_INPUT.MOUSE_CLICK,
-        d: {
-          x:x,
-          y:y
-        }
-      };
-      this._sendRawMessage(JSON.stringify(data));
+      var data = new GameMessageEvent(Util.EVENT_INPUT.MOUSE_CLICK, 
+                                                              [x,y]);
+      this._sendMessage(data);
     },
 
     /**
@@ -257,16 +256,33 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util'],
      * @param  {int} code They key code of the pressed key
      */
     sendKeypressMessage: function(code){
-      var data = {
-        i: Util.EVENT_INPUT.KEYBOARD_KEYPRESS,
-        d: {
-          c:code
-        }
-      };
-      this._sendRawMessage(JSON.stringify(data));
+      var data = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS,
+                                                                  [code]);
+      this._sendMessage(data);
+    },
+
+    /**
+     * Parse a server message
+     * Messages are sent in binary format
+     * @param  {MessageEvent} msg Incoming server message
+     * @return {Object} parsedData
+     */
+    parseMessage: function(e){
+      var msgArr = new Float64Array(e.data);
+      var action = msgArr[0] // first element indicates the action
+      var data = null;
+      if(msgArr.length > 1){
+        data = new Float64Array(msgArr.length - 1);
+        for (var i = 0; i < data.length; i++) {
+          data[i] = msgArr[i+1];
+        };
+      }
+      var msgObj = new GameMessageEvent(action,
+                              data, e.timeStamp);
+      
+      return msgObj;
     }
 
   };
-
   return GameClient;
 })
