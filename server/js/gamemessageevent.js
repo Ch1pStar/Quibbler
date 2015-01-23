@@ -41,12 +41,12 @@ GameMessageEvent.prototype.prepareForTransfer = function(transferMethod) {
 	var data;
 	if(transferMethod == 0){
     if(this.data){
-  	  var h = new Array(this.data);
-  	  data = new Float64Array(this.data.length+1);
-  	  data[0] = this.action;
-  	  for (var i = 0; i < h.length; i++) {
-  	    data[i+1] = h[i];
-  	  };
+  	  var h = this.data;
+      data = new Float64Array(this.data.length+1);
+      data[0] = this.action;
+      for (var i = 0; i < h.length; i++) {
+        data[i+1] = h[i];
+      };
     }else{
       data = new Float64Array([this.action]);
     }

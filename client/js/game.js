@@ -32,18 +32,26 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
       this.config = {
         mapUrl: 'assets/zambies.json',
         clientWindowWidth : 1216,
-        serverAddress: window.location.hostname,
-        serverPort: 3001,
-        serverMessageQueueLimit: 100
+        gameClientType: Util.GAME_CLIENT_TYPE.NETWORK_GAME, // 0 - network game, 1 - single player, 2 - replay
+        gameClientSettings: {
+          serverAddress: window.location.hostname,
+          serverPort: 3001,
+        },
+        incomingClientMessageLimit: 2000
       };
     }
     
     this.game = null;
     this.client = null;
     this.serverPing = 0;
-    this.eventQueue = new EventQueue(this.config.serverMessageQueueLimit);
+    this.eventQueue = new EventQueue(this.config.incomingClientMessageLimit);
+    this.entityManager = null;
+    this.audioManager = null;
     this.gameSystems = null;
     
+    //Dev testing stuff, detele when done
+    this.cc = 0;
+
     //Call after all properties are declared
     this.init();
   };
@@ -69,15 +77,20 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
         forceSetTimeOut: false 
       });
 
-
-      this.gameSystems = [
-        new EntityManager(this.game),
-        new AudioManager()
-      ];
-
       //Connect to game server after local client is initialized 
       //and server event handlers are set
-      this.connect()        
+      this.connect();
+
+      var self = this;
+      
+      window.onfocus = function(){
+        self.client.isListening = true;
+      }
+
+      window.onblur = function(){
+        self.client.isListening = false;
+      }
+
     },
 
     /**
@@ -87,13 +100,15 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      * @return {[type]}
      */
     connect: function(){
-      //TODO - Create the GameClient object with a factory instead
-      var client = new GameClient();
-      var config = this.config    
-      client.onWelcomeMessage(this.handleWelcomeMessage);
-      client.onPingMessage(this.handlePingUpdate);
-      client.onStateUpdate(this.enqueueEvent);
-      client.connect(config.serverAddress, config.serverPort, this);
+      var config = this.config
+      var client;
+      if(this.config.gameClientType == Util.GAME_CLIENT_TYPE.NETWORK_GAME){
+        client = new GameClient();
+        client.onWelcomeMessage(this.handleWelcomeMessage);
+        client.onPingMessage(this.handlePingUpdate);
+        client.onStateUpdate(this.enqueueEvent);
+        client.connect(config.gameClientSettings.serverAddress, config.gameClientSettings.serverPort, this);
+      }
       this.client = client;
     },
 
@@ -115,7 +130,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
     handleWelcomeMessage: function(data){
       console.log('Connected to server - %s', this.client.connection.url);
 
-      //Init enitites with starting server data
+      //Init teams, players and entities with starting server data
       //...
     },
 
@@ -124,9 +139,10 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      * Ping update handler
      * @param  {int}
      */
-    handlePingUpdate: function(ping){
+    handlePingUpdate: function(ping, latency){
       this.serverPing = ping;
       $('#ping-tracker').text(ping);
+      $('#latency-tracker').text(latency);
     },
 
     /**
@@ -151,6 +167,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
       this.game.load.image('simple_tile', 'assets/simple_tile.png');
 
       this.game.time.advancedTiming = true;
+      this.game.time.desiredFps = 60;
     },
 
     /**
@@ -195,7 +212,13 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
       game.input.onDown.add(this.mouseClickHandler, this);
       game.input.keyboard.addCallbacks(this, this.keyboardDownHandler, 
                       this.keyboardUpHandler, this.keyboardPressHandler);
+
+
+      this.entityManager = new EntityManager(this.game);
+      this.audioManager = new AudioManager();
+      this.gameSystems = [this.entityManager, this.audioManager];
     },
+
 
     /**
      * @private
@@ -222,6 +245,11 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      */
     render: function(){
       $('#fps-tracker').text(this.game.time.fps);
+
+
+      for (var i = 0; i < this.gameSystems.length; i++) {
+        this.gameSystems[i].processRender();
+      };
     },
     
     /**
@@ -281,43 +309,20 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
       try{
         var action = e.action;
 
-        if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
-          // Is a resource change event needed?
+        if(action == Util.EVENT_ACTION.ENTITY_STATE_UPDATE){
+          this.entityManager.eventQueue.push(e);
+        }else if(action == Util.EVENT_ACTION.PRODUCE){
+          this.entityManager.createEntity(e.data[0], e.data[1]);
+          this.cc++;
+          console.log(this.cc);
+        }else if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
 
-        } else if(action == Util.EVENT_ACTION.PLAY_AUDIO){
-          // Audio event
-
-        }else{
-          // Entity event
-          var data = e.data;
-          var currEntities = [];
-          if(data.isBulkOrder){
-            for (var i = 0; i < data.entityIds.length; i++) {
-              var entity = this.entities[data.entityIds[i]];
-              currEntities.push(entity);
-            };
-          }else{
-            currEntities.push(this.entities[data.entityId]);
-          }
-
-          if(action == Util.EVENT_ACTION.MOVE){
-            for (var i = 0; i < entities.length; i++) {
-              currEntities[i].addMoveOrder(data.dstX, data.dstY, 
-                                         data.addToEndOfQueue);
-            }
-          }else if(action == Util.EVENT_ACTION.ATTACK){
-            var targetEntity = this.entities[data.targetId];
-            for (var i = 0; i < entities.length; i++) {
-              currEntities[i].addAttackOrder(targetEntity, 
-                                      data.addToEndOfQueue);
-            }
-          }
         }
       }catch(e){
         console.error(e.message);
       }
       finally{
-        console.log('Event:\n\t%o', e);
+        // console.log('Event: %s\n\t%o', e.action, e);
       } 
     },
 

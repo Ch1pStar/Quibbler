@@ -36,17 +36,32 @@ function main(config) {
           ws.transferType = 1;
         }
         
-        // var cntr = 0;
-        // // setInterval(function(){
-        //     for (var i = 0; i < 4; i++) {
-        //         var entityId = i*3;
-        //         var data = [i, entityId, entityId*2, entityId*2];
-        //         ws.send(data, {binary: true})
-        //         // sendMessageToClient(ws, data);
-        //     };
-        //     cntr++;
-        // // }, 1000);
-        
+
+        // for (var i = 0; i < 2000; i++) {
+          sendProduceUnit(150, 150, ws);
+        // };
+        var tarX = 50,
+            tarY = 50;
+        var tt = setInterval(function(){
+          var now = (new Date()).getTime();
+          simStateUpdate(tarX, tarY, now, ws);
+          if(tarX>750){
+            tarX = 30;
+          }else{
+            tarX +=30;
+            tarX +=Math.random()*50;
+          }
+          if(tarY > 600){
+            tarY = 45;
+          }else{
+            tarY +=Math.random()*50;
+          }
+        }, 200);
+
+
+        // setTimeout(function(){
+        //   clearInterval(tt);
+        // }, 5000);
         
 
         ws.on('message', function(msg, flags){
@@ -70,9 +85,17 @@ function main(config) {
         })
     });
 
-    // process.on('uncaughtException', function (e) {
-    //     console.error('uncaughtException: ' + e);
-    // });
+    process.on('uncaughtException', function (e) {
+        console.error('uncaughtException: ' + e);
+    });
+}
+
+function simStateUpdate(x, y, t, ws){
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, [x,y,t]));
+}
+
+function sendProduceUnit(x, y, ws){
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, [x, y]));
 }
 
 function sendMessageToClient(ws, msg) {
@@ -106,17 +129,19 @@ function parseMessage(ws, msg, flags) {
     console.error("Error parsing client message");
     return false;
   }finally{
-    console.log(msgObj);
+    // console.log(msgObj);
   }
 }
 
 function pingReply(ws) {
-    var ts = (new Date()).getTime(); 
-    var d =[ts];
-    // var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING,
-    //                           d, ts);
+    var date =new Date(); 
+    var ts = date.getTime();
+    var timeZone = date.getTimezoneOffset(); 
+    var d =[ts, timeZone];
+    var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING,
+                              d, ts);
     
-    var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING, null, ts);
+    // var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING, null, ts);
     sendMessageToClient(ws, data);
 }
 

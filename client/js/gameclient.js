@@ -20,6 +20,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
     this.stateUpdateCallback = null;
     this.pingCallback = null;
     this.lastPingSentAt = 0;
+    this.isListening = true;
     
     if(typeof config !== 'undefined'){
       this.config = config;
@@ -86,7 +87,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
     onOpen: function(){
       this.connected = true;
 
-      // this.enablePingPolling();
+      this.enablePingPolling();
     },
 
     /**
@@ -103,15 +104,15 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      * @param  {MessageEvent}
      */
     onMessage: function(e){
-      var msgObj = this.parseMessage(e);
-      // console.log('Received data: %o', msgObj);
-
-      if(msgObj.action == Util.EVENT_ACTION.WELCOME){
-        this.receiveWelcomeMessage(msgObj);
-      }else if(msgObj.action == Util.EVENT_ACTION.PING){
-        this.receivePingMessage(msgObj);
-      }else{
-        this.stateUpdate(msgObj);
+      if(this.isListening){
+        var msgObj = this.parseMessage(e);
+        if(msgObj.action == Util.EVENT_ACTION.WELCOME){
+          this.receiveWelcomeMessage(msgObj);
+        }else if(msgObj.action == Util.EVENT_ACTION.PING){
+          this.receivePingMessage(msgObj);
+        }else{
+          this.stateUpdate(msgObj);
+        }
       }
     },
 
@@ -163,10 +164,14 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      */
     receivePingMessage: function(msg){
       if(this.pingCallback != null){
-        // var ts = msg.data[0];
         var ts = this.lastPingSentAt;
         var ping = Math.abs(msg.timeStamp - ts);
-        this.pingCallback.call(this.callbackContext, ping);
+        //TODO - Add timezone validation, latency will not work 
+        //for clients in timezones different from the server
+        var timezoneOffset = (new Date()).getTimezoneOffset();
+        // console.log(timezoneOffset - (msg.data[1]));
+        var latency = Math.abs(msg.timeStamp - msg.data[0]);
+        this.pingCallback.call(this.callbackContext, ping, latency);
       }     
     },
 
