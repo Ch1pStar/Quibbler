@@ -44,10 +44,12 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
     this.game = null;
     this.client = null;
     this.serverPing = 0;
+    this.serverLatency = 0;
     this.eventQueue = new EventQueue(this.config.incomingClientMessageLimit);
     this.entityManager = null;
     this.audioManager = null;
     this.gameSystems = null;
+    this.map;
     
     //Dev testing stuff, detele when done
     this.cc = 0;
@@ -141,6 +143,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      */
     handlePingUpdate: function(ping, latency){
       this.serverPing = ping;
+      this.serverLatency = latency;
       $('#ping-tracker').text(ping);
       $('#latency-tracker').text(latency);
     },
@@ -181,7 +184,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
 
       game.stage.backgroundColor = '#2d2d2d';
 
-      map = game.add.tilemap('map');
+      var map = game.add.tilemap('map');
 
       map.addTilesetImage('bg');
       map.addTilesetImage('road');
@@ -195,10 +198,12 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
 
       var walls = map.createLayer('Road');
       walls.resizeWorld();
+      // walls.destroy();
+      console.log(walls);
 
       //  Set the tiles for collision.
       //  Do this BEFORE generating the p2 bodies below.
-      map.setCollisionBetween(1, 12);
+      // map.setCollisionBetween(1, 12);
 
       //  Convert the tilemap layer into bodies. 
       //  Only tiles that collide (see above) are created.
@@ -213,10 +218,10 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
       game.input.keyboard.addCallbacks(this, this.keyboardDownHandler, 
                       this.keyboardUpHandler, this.keyboardPressHandler);
 
-
       this.entityManager = new EntityManager(this.game);
       this.audioManager = new AudioManager();
       this.gameSystems = [this.entityManager, this.audioManager];
+      this.map = map;
     },
 
 
@@ -232,6 +237,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
       }
 
       for (var i = 0; i < this.gameSystems.length; i++) {
+        this.gameSystems[i].serverLatency = this.serverPing;
         this.gameSystems[i].process();
       };
 
@@ -245,6 +251,13 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      */
     render: function(){
       $('#fps-tracker').text(this.game.time.fps);
+      var conStatus;
+      if(this.client.connected){
+        conStatus = "connected";
+      }else{
+        conStatus = "disconnected";
+      }
+        $('#conn-value').text(conStatus)
 
 
       for (var i = 0; i < this.gameSystems.length; i++) {
@@ -277,6 +290,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      */
     mouseClickHandler: function(pointer){
       console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
+      console.log(this.map.layer.alive);     
       this.client.sendClickMessage(pointer.x, pointer.y);
     },
 

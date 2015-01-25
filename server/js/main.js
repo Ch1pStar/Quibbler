@@ -36,26 +36,31 @@ function main(config) {
           ws.transferType = 1;
         }
         
-
-        // for (var i = 0; i < 2000; i++) {
-          sendProduceUnit(150, 150, ws);
-        // };
+        var i = 0;
+        var pId = setInterval(function(){
+          sendProduceUnit( 150, 150, ws);
+          if(i++>=150)
+            clearInterval(pId);
+        }, 100);
         var tarX = 50,
             tarY = 50;
+
         var tt = setInterval(function(){
-          var now = (new Date()).getTime();
+          // var now = (new Date()).getTime();
+          var now = Date.now();
+          if(tarX>800){
+            tarX = 0;
+            // tarY = 30;
+          }else{
+            tarX +=  12 //(Math.random()*35) + 40;
+          }
+          if(tarY > 350){
+            // tarX = 30;
+            tarY = 0;
+          }else{
+            tarY += 10 //(Math.random()*20) + 20;
+          }
           simStateUpdate(tarX, tarY, now, ws);
-          if(tarX>750){
-            tarX = 30;
-          }else{
-            tarX +=30;
-            tarX +=Math.random()*50;
-          }
-          if(tarY > 600){
-            tarY = 45;
-          }else{
-            tarY +=Math.random()*50;
-          }
         }, 200);
 
 

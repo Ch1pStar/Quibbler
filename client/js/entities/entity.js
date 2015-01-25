@@ -9,7 +9,6 @@ define([], function(){
       var centerX = x - 32/2;
       var centerY = y - 32/2;
       this.obj = this.pGame.add.sprite(centerX, centerY, 'simple_tile');
-      // this.clientTime = 0;
       this.updateCalls = 0;
       this.renderCalls = 0;
       this.lastUpdateWindowStarted = 0;
@@ -32,7 +31,7 @@ define([], function(){
       }
 
       var currentTime = this.pGame.time.now;
-
+      // console.log(this.pGame.time.now);
       var count = this.frames.length-1;
       var targetFrame = null;
       var previousFrame = null;
@@ -60,9 +59,6 @@ define([], function(){
         var maxDifference = (targetFrame.t - previousFrame.t);
         var timePoint = (difference/maxDifference);
 
-        //Because we use the same target and previous in extreme cases
-        //It is possible to get incorrect values due to division by 0 difference
-        //and such. This is a safe guard and should probably not be here. lol.
         if( isNaN(timePoint) ) {
           timePoint = 0;
         }
@@ -94,11 +90,6 @@ define([], function(){
 
     draw: function(){
 
-      if((this.lastUpdateWindowStartedDraw + 1000) < this.clientTime ){
-        this.lastUpdateWindowStartedDraw = this.clientTime;
-        console.log("Draws for last second - %d", this.renderCalls);
-        this.renderCalls = 0;
-      }
       this.renderCalls++;
 
 

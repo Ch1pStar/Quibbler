@@ -188,7 +188,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
       var self = this;
       if(!disable){
         this.pingPollingIntervalId = setInterval(function(){
-          self.lastPingSentAt = (new Date()).getTime();
+          self.lastPingSentAt = Date.now();
           var data = new GameMessageEvent(Util.EVENT_ACTION.PING, null, self.lastPingSentAt);
           self._sendMessage(data);
         }, this.config.pingPollFrequency);
@@ -282,8 +282,9 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
           data[i] = msgArr[i+1];
         };
       }
+      var ts = Date.now();
       var msgObj = new GameMessageEvent(action,
-                              data, e.timeStamp);
+                              data, ts);
       
       return msgObj;
     }

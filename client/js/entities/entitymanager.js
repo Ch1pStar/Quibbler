@@ -22,12 +22,14 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
 
       while(!this.eventQueue.empty()){
         var e = this.eventQueue.next();
+        var lerpPlusLatency = this.entityLerpMsec + this.serverLatency;
         for (var i = 0; i < this.entities.length; i++) {
           this.entities[i].frames.push({
-            x:e.data[0],
-            y:e.data[1],
-            t:e.data[2] + this.entityLerpMsec
+            x:e.data[0]+(Math.random()*350),
+            y:e.data[1]+(Math.random()*350),
+            t:e.data[2] + lerpPlusLatency
           });
+          $('#t-value').text(this.entities[0].frames.length);
 
           if(this.entities[i].frames.length >= this.maxEntityFrames) {
               this.entities[i].frames.splice(0,1);
