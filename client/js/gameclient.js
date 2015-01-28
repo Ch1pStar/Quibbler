@@ -107,7 +107,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
       if(this.isListening){
         var msgObj = this.parseMessage(e);
         if(msgObj.action == Util.EVENT_ACTION.WELCOME){
-          this.receiveWelcomeMessage(msgObj);
+          this.receiveWelcomeMessage(msgObj.data);
         }else if(msgObj.action == Util.EVENT_ACTION.PING){
           this.receivePingMessage(msgObj);
         }else{
@@ -130,7 +130,19 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
        * TODO Add actual logic - 
        * create game process event messages from the server snapshot
        */
-      msgObjsArr.push(msgObj);
+      // console.log(msgObj.data, msgObj.data.length);
+      for (var i = 0; i < msgObj.data.length; i+=3) {
+        
+        var id = msgObj.data[i];
+        var x = msgObj.data[i+1];
+        var y = msgObj.data[i+2];
+        msgObjsArr.push(new GameMessageEvent(msgObj.action,
+                              [x,y,id], msgObj.timeStamp));
+      };
+
+      // console.log(msgObjsArr.length);
+      
+      // msgObjsArr.push(msgObj);
       
       //Push generated events to core process message queue
       if(this.stateUpdateCallback != null){

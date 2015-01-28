@@ -4,7 +4,7 @@
 define([], function(){
 
   var Entity = Class.extend({
-    init: function(pGame, x, y, id){
+    init: function(pGame, x, y, id, type){
       this.pGame = pGame;
       var centerX = x - 32/2;
       var centerY = y - 32/2;
@@ -20,6 +20,7 @@ define([], function(){
           t: this.pGame.time.now
         }
       ];
+      this.type = type;
       this.id = id;
 
     },

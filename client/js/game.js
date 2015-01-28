@@ -37,7 +37,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
           serverAddress: window.location.hostname,
           serverPort: 3001,
         },
-        incomingClientMessageLimit: 2000
+        incomingClientMessageLimit: 500
       };
     }
     
@@ -50,6 +50,10 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
     this.audioManager = null;
     this.gameSystems = null;
     this.map;
+
+    this.tickCount = 0;
+    this.serverTickRate = 0;
+    this.serverUpdateInterval = 0;
     
     //Dev testing stuff, detele when done
     this.cc = 0;
@@ -131,9 +135,9 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      */
     handleWelcomeMessage: function(data){
       console.log('Connected to server - %s', this.client.connection.url);
-
-      //Init teams, players and entities with starting server data
-      //...
+      this.tickCount = data[0];
+      this.serverTickRate = data[1];
+      this.serverUpdateInterval = data[2];
     },
 
     /**
@@ -198,9 +202,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
 
       var walls = map.createLayer('Road');
       walls.resizeWorld();
-      // walls.destroy();
-      console.log(walls);
-
+     
       //  Set the tiles for collision.
       //  Do this BEFORE generating the p2 bodies below.
       // map.setCollisionBetween(1, 12);
@@ -218,7 +220,12 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
       game.input.keyboard.addCallbacks(this, this.keyboardDownHandler, 
                       this.keyboardUpHandler, this.keyboardPressHandler);
 
-      this.entityManager = new EntityManager(this.game);
+      var entityManagerConfig = {
+        serverTickRate: this.serverTickRate,
+        entityFrameHistoryLimit: 15,
+        serverUpdateInterval: this.serverUpdateInterval
+      };
+      this.entityManager = new EntityManager(this.game, entityManagerConfig);
       this.audioManager = new AudioManager();
       this.gameSystems = [this.entityManager, this.audioManager];
       this.map = map;
@@ -232,7 +239,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
     update: function() {
 
       //Execute the queued events for the current update cycle
-      if(!this.eventQueue.empty()){
+      while(!this.eventQueue.empty()){
         this.executeEvent(this.eventQueue.next());      
       }
 
@@ -243,6 +250,8 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
 
       //Handle input devices(mouse, keyboard) current state
       this.resolveInputState();
+
+      this.tickCount++;
     },
 
     /**
@@ -322,13 +331,12 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
     executeEvent: function(e){
       try{
         var action = e.action;
-
         if(action == Util.EVENT_ACTION.ENTITY_STATE_UPDATE){
           this.entityManager.eventQueue.push(e);
         }else if(action == Util.EVENT_ACTION.PRODUCE){
-          this.entityManager.createEntity(e.data[0], e.data[1]);
+          this.entityManager.createEntity(e.data);
           this.cc++;
-          console.log(this.cc);
+          // console.log(this.cc);
         }else if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
 
         }

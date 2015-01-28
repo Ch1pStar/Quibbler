@@ -5,36 +5,41 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
 
   var EntityManager = IManager.extend({
 
-    init: function(pGame){
+    init: function(pGame, config){
       this._super();
       this.pGame = pGame;
       this.entities = [];
-      this.maxEntityFrames = 3;
-      this.entityLerpMsec = 200;
+      this.maxEntityFrames = config.entityFrameHistoryLimit;
+      this.entityLerpMsec = config.serverTickRate*config.serverUpdateInterval;
     },
 
 
-    createEntity: function(x, y, type){
-      this.entities.push(new Entity(this.pGame, x, y, 10));
+    createEntity: function(data){
+      this.entities.push(new Entity(this.pGame, data[0], data[1], data[2], 10));
     },
 
     process: function(){
 
       while(!this.eventQueue.empty()){
         var e = this.eventQueue.next();
-        var lerpPlusLatency = this.entityLerpMsec + this.serverLatency;
-        for (var i = 0; i < this.entities.length; i++) {
-          this.entities[i].frames.push({
-            x:e.data[0]+(Math.random()*350),
-            y:e.data[1]+(Math.random()*350),
-            t:e.data[2] + lerpPlusLatency
-          });
-          $('#t-value').text(this.entities[0].frames.length);
+        var lerpPlusLatency = this.entityLerpMsec; //+ this.serverLatency;
+        // var lerpTargetTime = this.pGame.time._started + (e.data[2]*(1000/60));
+        // console.log(lerpTargetTime, this.pGame.time.now);
+        var lerpTargetTime = e.timeStamp;
+        var currEntity = this.entities[e.data[2]];
+        
+        currEntity.frames.push({
+          x:e.data[0],// + (Math.random()*300),
+          y:e.data[1],// + (Math.random()*300),
+          t:lerpTargetTime + lerpPlusLatency
+        });
+        $('#t-value').text(this.entities[0].frames.length);
 
-          if(this.entities[i].frames.length >= this.maxEntityFrames) {
-              this.entities[i].frames.splice(0,1);
-          }
+        if(currEntity.frames.length >= this.maxEntityFrames) {
+            currEntity.frames.splice(0,1);
         }
+          
+        
       }
 
       for (var i = 0; i < this.entities.length; i++) {

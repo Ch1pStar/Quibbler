@@ -16,12 +16,13 @@ function getConfigFile(path, callback) {
         }
     });
 }
-
+var wss;
 function main(config) {
 
     var ws = require("ws"),
-        WebSocketServer = require('ws').Server, 
-        wss = new WebSocketServer({port: config.port});
+        WebSocketServer = require('ws').Server;
+
+    wss = new WebSocketServer({port: config.port});
 
     //INIT WORLD
 
@@ -35,34 +36,14 @@ function main(config) {
         }else{
           ws.transferType = 1;
         }
+
+        sendWelcomeMessage(ws);
         
-        var i = 0;
-        var pId = setInterval(function(){
-          sendProduceUnit( 150, 150, ws);
-          if(i++>=150)
-            clearInterval(pId);
-        }, 100);
-        var tarX = 50,
-            tarY = 50;
-
-        var tt = setInterval(function(){
-          // var now = (new Date()).getTime();
-          var now = Date.now();
-          if(tarX>800){
-            tarX = 0;
-            // tarY = 30;
-          }else{
-            tarX +=  12 //(Math.random()*35) + 40;
-          }
-          if(tarY > 350){
-            // tarX = 30;
-            tarY = 0;
-          }else{
-            tarY += 10 //(Math.random()*20) + 20;
-          }
-          simStateUpdate(tarX, tarY, now, ws);
-        }, 200);
-
+        for (var i = 0; i < units.length; i++) {
+            var cu =  units[i];
+            sendProduceUnit( cu.x, cu.y, cu.id, ws);
+        };  
+        
 
         // setTimeout(function(){
         //   clearInterval(tt);
@@ -72,8 +53,6 @@ function main(config) {
         ws.on('message', function(msg, flags){
 
             var data = parseMessage(ws, msg, flags);
-
-            // sendMessageToClient(ws, {a: gameUtils.EVENT_ACTION.WELCOME});
 
             if(data){
               if(data.action == gameUtils.EVENT_ACTION.PING){
@@ -90,17 +69,28 @@ function main(config) {
         })
     });
 
+
+
+
     process.on('uncaughtException', function (e) {
         console.error('uncaughtException: ' + e);
     });
 }
 
-function simStateUpdate(x, y, t, ws){
-  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, [x,y,t]));
+function simStateUpdate(x, y, id, t, ws){
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, [x, y, id,t]));
 }
 
-function sendProduceUnit(x, y, ws){
-  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, [x, y]));
+function sendEntitiesSnapshot(data, ws) {
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, data));  
+}
+
+function sendProduceUnit(x, y, id, ws){
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, [x, y, id]));
+}
+
+function sendWelcomeMessage(ws) {
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.WELCOME, [tickCount, tickRate, updateInterval]));
 }
 
 function sendMessageToClient(ws, msg) {
@@ -139,10 +129,10 @@ function parseMessage(ws, msg, flags) {
 }
 
 function pingReply(ws) {
-    var date =new Date(); 
+    var date = new Date(); 
     var ts = date.getTime();
     var timeZone = date.getTimezoneOffset(); 
-    var d =[ts, timeZone];
+    var d = [ts, timeZone];
     var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING,
                               d, ts);
     
@@ -166,3 +156,50 @@ function startServer() {
 }
 
 startServer();
+
+var tickRate = 1000/60;
+var tickCount = 0;
+var updateInterval = 24; //send a client update every updateInterval ticks
+
+var tarX = 50,
+    tarY = 50;
+
+var units = [];
+for (var i = 0; i < 80; i++) {
+  units[i] = {
+    x: 10*i,
+    y: 5*i,
+    id: i
+  }
+};
+
+
+setInterval(function(){
+  var updatedUnits = [];
+  for (var i = 0; i < units.length; i++) {
+    var now = Date.now();
+    if(units[i].x>800){
+      units[i].x = 0;
+    }else{
+      units[i].x += 1.5;
+    }
+    if(units[i].y > 550){
+      units[i].y = 0;
+    }else{
+      units[i].y += 1.5;
+    }
+    if(tickCount%updateInterval == 0){
+      updatedUnits.push(units[i].id);
+      updatedUnits.push(units[i].x);
+      updatedUnits.push(units[i].y);
+    }
+  }
+  if(tickCount%updateInterval == 0){  
+    // console.log(updatedUnits);
+    for (var j = 0; j < wss.clients.length; j++) {
+      var ws = wss.clients[j];
+      sendEntitiesSnapshot(updatedUnits, ws);
+    };
+  }
+  tickCount++;
+}, tickRate);
