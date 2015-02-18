@@ -28,7 +28,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
       //Default config options
       this.config  = {
         transferMethod: 0, //binary
-        pingPollFrequency: 1000,
+        pingPollFrequency: 3000,
         incomingPacketDelay: 0
       };
     }
@@ -86,7 +86,6 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      */
     onOpen: function(){
       this.connected = true;
-
       this.enablePingPolling();
     },
 
@@ -131,13 +130,15 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
        * create game process event messages from the server snapshot
        */
       // console.log(msgObj.data, msgObj.data.length);
-      for (var i = 0; i < msgObj.data.length; i+=3) {
+      for (var i = 0; i < msgObj.data.length; i+=4) {
         
-        var id = msgObj.data[i];
-        var x = msgObj.data[i+1];
-        var y = msgObj.data[i+2];
+        var x = msgObj.data[i];
+        var y = msgObj.data[i+1];
+        var r = msgObj.data[i+2];
+        var id = msgObj.data[i+3];
+        // console.log(msgObj.action, x,y,r,id);
         msgObjsArr.push(new GameMessageEvent(msgObj.action,
-                              [x,y,id], msgObj.timeStamp));
+                              [x,y,r,id], msgObj.timeStamp));
       };
 
       // console.log(msgObjsArr.length);
@@ -196,7 +197,6 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
       if(typeof disable == 'undefined'){
         disable = false;
       }
-
       var self = this;
       if(!disable){
         this.pingPollingIntervalId = setInterval(function(){
@@ -274,7 +274,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      */
     sendKeypressMessage: function(code){
       var data = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS,
-                                                                  [code]);
+                                                                  [code, code, code]);
       this._sendMessage(data);
     },
 
@@ -285,19 +285,28 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      * @return {Object} parsedData
      */
     parseMessage: function(e){
-      var msgArr = new Float64Array(e.data);
-      var action = msgArr[0] // first element indicates the action
+      var dw = new DataView(e.data);
+      var action = dw.getInt8(0) // first element indicates the action
       var data = null;
-      if(msgArr.length > 1){
-        data = new Float64Array(msgArr.length - 1);
-        for (var i = 0; i < data.length; i++) {
-          data[i] = msgArr[i+1];
+      if(dw.buffer.byteLength > 1){
+        var bytesPerValue = dw.getInt8(1);
+        data = new Array((dw.buffer.byteLength-2)/bytesPerValue);
+        for (var i = 0,j=2; i < data.length; i++,j+=bytesPerValue) {
+          if(bytesPerValue == 8){
+            data[i] = dw.getFloat64(j);
+          }else if(bytesPerValue == 4){
+            data[i] = dw.getFloat32(j);
+          }else if(bytesPerValue == 2){
+            data[i] = dw.getInt16(j);
+          }else if(bytesPerValue == 1){
+            data[i] = dw.getInt8(j);
+          }
         };
       }
       var ts = Date.now();
       var msgObj = new GameMessageEvent(action,
                               data, ts);
-      
+
       return msgObj;
     }
 

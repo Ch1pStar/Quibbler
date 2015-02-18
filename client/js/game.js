@@ -4,7 +4,7 @@
 
 requirejs.config({
   paths: {
-    phaser:   'lib/phaser.min',
+    phaser:   'lib/phaser.min'
   },
 
   shim: {
@@ -14,10 +14,10 @@ requirejs.config({
   }
 });
 
-define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 
-  'util','entities/entitymanager', 'audio/audiomanager', 'lib/underscore-min', 'core/class'],
-      function($, Phaser, GameClient, EventQueue, GameMessageEvent, Util,  
-                                                EntityManager, AudioManager) {
+define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 
+  'util','entities/entitymanager', 'audio/audiomanager', 'tilemap', 'lib/underscore-min'],
+      function($, Class, Phaser, GameClient, EventQueue, GameMessageEvent, Util,  
+                                                EntityManager, AudioManager, TileMap) {
 
   /**
    * @public
@@ -37,7 +37,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
           serverAddress: window.location.hostname,
           serverPort: 3001,
         },
-        incomingClientMessageLimit: 500
+        incomingClientMessageLimit: 22500
       };
     }
     
@@ -69,19 +69,18 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      * Creates the game world and starts the game loop
      */
     init: function(){
-      var wWidth = $(window).width();
-      var gameWidth = this.config.clientWindowWidth;
-      if(wWidth < gameWidth){
-        gameWidth = wWidth - 50;
-      }
-
-      this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', {
-        preload: this.caller(this.preload),
-        create: this.caller(this.create), 
-        update: this.caller(this.update), 
-        render: this.caller(this.render), 
-        forceSetTimeOut: false 
-      });
+      // var wWidth = $(window).width();
+      // var gameWidth = this.config.clientWindowWidth;
+      // if(wWidth < gameWidth){
+      //   gameWidth = wWidth - 50;
+      // }
+      // this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', {
+      //   preload: this.caller(this.preload),
+      //   create: this.caller(this.create), 
+      //   update: this.caller(this.update), 
+      //   render: this.caller(this.render), 
+      //   forceSetTimeOut: false 
+      // });
 
       //Connect to game server after local client is initialized 
       //and server event handlers are set
@@ -138,6 +137,21 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
       this.tickCount = data[0];
       this.serverTickRate = data[1];
       this.serverUpdateInterval = data[2];
+    
+      var wWidth = $(window).width();
+      var gameWidth = this.config.clientWindowWidth;
+      if(wWidth < gameWidth){
+        gameWidth = wWidth - 50;
+      }
+
+      this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', {
+        preload: this.caller(this.preload),
+        create: this.caller(this.create), 
+        update: this.caller(this.update), 
+        render: this.caller(this.render), 
+        forceSetTimeOut: false 
+      });
+
     },
 
     /**
@@ -188,31 +202,26 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
 
       game.stage.backgroundColor = '#2d2d2d';
 
-      var map = game.add.tilemap('map');
+      this.map = new TileMap(game.add.tilemap('map'));
+      this.map.addResources();
 
-      map.addTilesetImage('bg');
-      map.addTilesetImage('road');
-      map.addTilesetImage('road_corners');
-      // map.addTilesetImage('Grass');
-      // map.addTilesetImage('Water');
-      // map.addTilesetImage('ground_1x1');
 
-      var  layer = map.createLayer('Background');
+      var  layer = this.map.pMap.createLayer('Background');
       layer.resizeWorld();
 
-      var walls = map.createLayer('Road');
+      var walls = this.map.pMap.createLayer('Road');
       walls.resizeWorld();
      
       //  Set the tiles for collision.
       //  Do this BEFORE generating the p2 bodies below.
-      // map.setCollisionBetween(1, 12);
+      // this.map.pMap.setCollisionBetween(1, 12);
 
       //  Convert the tilemap layer into bodies. 
       //  Only tiles that collide (see above) are created.
       //  This call returns an array of body objects which
       //  you can perform addition actions on if required.
       //  There is also a parameter to control optimising the map build.
-      var wallTiles = game.physics.p2.convertTilemap(map, walls);
+      // var wallTiles = game.physics.p2.convertTilemap(this.map.pMap, walls);
 
       game.physics.p2.setBoundsToWorld(true, true, true, true, false);
 
@@ -222,13 +231,12 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
 
       var entityManagerConfig = {
         serverTickRate: this.serverTickRate,
-        entityFrameHistoryLimit: 15,
+        entityFrameHistoryLimit: 4,
         serverUpdateInterval: this.serverUpdateInterval
       };
       this.entityManager = new EntityManager(this.game, entityManagerConfig);
       this.audioManager = new AudioManager();
       this.gameSystems = [this.entityManager, this.audioManager];
-      this.map = map;
     },
 
 
@@ -260,13 +268,18 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      */
     render: function(){
       $('#fps-tracker').text(this.game.time.fps);
+      var elapsed = Math.floor((this.tickCount*this.serverTickRate)/1000);
+      var elapsedMinutes = ('0'+Math.floor(elapsed/60)).slice(-2);
+      var elapsedSeconds = ('0'+elapsed%60).slice(-2);
+      $('#time-tracker').text(elapsedMinutes+':'+elapsedSeconds);
       var conStatus;
       if(this.client.connected){
         conStatus = "connected";
       }else{
         conStatus = "disconnected";
       }
-        $('#conn-value').text(conStatus)
+      $('#conn-value').text(conStatus);
+
 
 
       for (var i = 0; i < this.gameSystems.length; i++) {
@@ -299,7 +312,7 @@ define(['jquery','phaser', 'gameclient', 'eventqueue', 'gamemessageevent',
      */
     mouseClickHandler: function(pointer){
       console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
-      console.log(this.map.layer.alive);     
+      // console.log(this.map.layer.alive);     
       this.client.sendClickMessage(pointer.x, pointer.y);
     },
 

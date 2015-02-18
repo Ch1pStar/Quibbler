@@ -29,7 +29,7 @@ function main(config) {
     var stream = net.connect(3002);
 
     wss.on('connection', function(ws){
-        console.log("Client connected");
+        console.log("Client connected - %s",  ws._socket.remoteAddress);
 
         if(ws.supports.binary){
           ws.transferType = 0;
@@ -41,7 +41,7 @@ function main(config) {
         
         for (var i = 0; i < units.length; i++) {
             var cu =  units[i];
-            sendProduceUnit( cu.x, cu.y, cu.id, ws);
+            sendProduceUnit( cu.x, cu.y, cu.r, cu.id, ws);
         };  
         
 
@@ -70,11 +70,9 @@ function main(config) {
     });
 
 
-
-
-    process.on('uncaughtException', function (e) {
-        console.error('uncaughtException: ' + e);
-    });
+    // process.on('uncaughtException', function (e) {
+    //     console.error('uncaughtException: ' + e);
+    // });
 }
 
 function simStateUpdate(x, y, id, t, ws){
@@ -82,39 +80,46 @@ function simStateUpdate(x, y, id, t, ws){
 }
 
 function sendEntitiesSnapshot(data, ws) {
-  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, data));  
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, data), 2);  
 }
 
-function sendProduceUnit(x, y, id, ws){
-  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, [x, y, id]));
+function sendProduceUnit(x, y, r, id, ws){
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, [x, y, r, id]));
 }
 
 function sendWelcomeMessage(ws) {
   sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.WELCOME, [tickCount, tickRate, updateInterval]));
 }
 
-function sendMessageToClient(ws, msg) {
-    var data = msg.prepareForTransfer(ws.transferType);
-    if(data){
-      return ws.send(data);
-    }
+function sendMessageToClient(ws, msg, bytesPerValue) {
+  var data = msg.prepareForTransfer(ws.transferType, bytesPerValue);
+  if(data){
+    return ws.send(data);
+  }
 }
 
 function parseMessage(ws, msg, flags) {
   var msgObj;
   try{
     if(ws.transferType == 0){
-
-      var buff = new Buffer(msg);
       var data = null;
-      if(buff.length > 8){
-        data = new Array((buff.length - 8)/8);
-        for (var i = 8, p = 0; i < buff.length - 7; i += 8, ++p){
-          data[p] = buff.readDoubleLE(i);
+      if(msg.length > 1){
+        var bytesPerValue = msg.readInt8(1);
+        console.log(bytesPerValue);
+        data = new Array((msg.length - 2)/bytesPerValue);
+        for (var i = 0,j=2; i < data.length; i++,j+=bytesPerValue) {
+          if(bytesPerValue == 8){
+            data[i] = msg.readDoubleBE(j);
+          }else if(bytesPerValue == 4){
+            data[i] = msg.readFloatBE(j);
+          }else if(bytesPerValue == 2){
+            data[i] = msg.readInt16BE(j);
+          }else if(bytesPerValue == 1){
+            data[i] = msg.readInt8(j);
+          }
         }
-      }
-      msgObj = new GameMessageEvent(buff.readDoubleLE(0), data);
-
+      }     
+      msgObj = new GameMessageEvent(msg.readInt8(0), data);
     }else{
         var data = JSON.parse(msg);
         var msgObj = new GameMessageEvent(msg.a, msg.d);
@@ -137,7 +142,7 @@ function pingReply(ws) {
                               d, ts);
     
     // var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING, null, ts);
-    sendMessageToClient(ws, data);
+    sendMessageToClient(ws, data, 8);
 }
 
 function startServer() {
@@ -158,44 +163,61 @@ function startServer() {
 startServer();
 
 var tickRate = 1000/60;
-var tickCount = 0;
-var updateInterval = 24; //send a client update every updateInterval ticks
+var tickCount = 0; 
+var updateInterval = 3; //send a client update every updateInterval ticks
 
 var tarX = 50,
     tarY = 50;
 
 var units = [];
-for (var i = 0; i < 80; i++) {
+for (var i = 0; i < 1; i++) {
   units[i] = {
-    x: 10*i,
-    y: 5*i,
-    id: i
+    x: i*32*Math.random(),
+    y: i*32*Math.random(),
+    r: 0,
+    id: i,
+    directionX: 1,
+    directionY: 1
   }
 };
 
 
 setInterval(function(){
   var updatedUnits = [];
+  var xStep = 10;
+  var yStep = 10;
+  var xAccelerationMultiplier = 1;
+  var yAccelerationMultiplier = 1;
   for (var i = 0; i < units.length; i++) {
     var now = Date.now();
-    if(units[i].x>800){
-      units[i].x = 0;
-    }else{
-      units[i].x += 1.5;
+    var u = units[i];
+
+    if(u.x > 850){
+      u.directionX = -1;
+      xAccelerationMultiplier = 5.1;
+    }else if(u.x < 50){
+      u.directionX = 1;
     }
-    if(units[i].y > 550){
-      units[i].y = 0;
-    }else{
-      units[i].y += 1.5;
+
+    if(u.y > 550){
+      u.directionY = -1;
+      yAccelerationMultiplier = 5.1;
+    }else if(u.y < 50){
+      u.directionY = 1;
     }
+
+    u.x += (yStep*u.directionX)*xAccelerationMultiplier;
+    u.y += (yStep*u.directionY)*yAccelerationMultiplier;
+    u.r +=1;
+    
     if(tickCount%updateInterval == 0){
-      updatedUnits.push(units[i].id);
-      updatedUnits.push(units[i].x);
-      updatedUnits.push(units[i].y);
+      updatedUnits.push(u.x);
+      updatedUnits.push(u.y);
+      updatedUnits.push(u.r);
+      updatedUnits.push(u.id);
     }
   }
-  if(tickCount%updateInterval == 0){  
-    // console.log(updatedUnits);
+  if(tickCount%updateInterval == 0){
     for (var j = 0; j < wss.clients.length; j++) {
       var ws = wss.clients[j];
       sendEntitiesSnapshot(updatedUnits, ws);

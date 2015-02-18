@@ -15,7 +15,7 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
 
 
     createEntity: function(data){
-      this.entities.push(new Entity(this.pGame, data[0], data[1], data[2], 10));
+      this.entities.push(new Entity(this.pGame, data[0], data[1], data[2], data[3], 10));
     },
 
     process: function(){
@@ -26,11 +26,12 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
         // var lerpTargetTime = this.pGame.time._started + (e.data[2]*(1000/60));
         // console.log(lerpTargetTime, this.pGame.time.now);
         var lerpTargetTime = e.timeStamp;
-        var currEntity = this.entities[e.data[2]];
+        var currEntity = this.entities[e.data[3]];
         
         currEntity.frames.push({
           x:e.data[0],// + (Math.random()*300),
           y:e.data[1],// + (Math.random()*300),
+          r:e.data[2],
           t:lerpTargetTime + lerpPlusLatency
         });
         $('#t-value').text(this.entities[0].frames.length);

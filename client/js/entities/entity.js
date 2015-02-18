@@ -4,11 +4,14 @@
 define([], function(){
 
   var Entity = Class.extend({
-    init: function(pGame, x, y, id, type){
+    init: function(pGame, x, y, r, id, type){
       this.pGame = pGame;
       var centerX = x - 32/2;
       var centerY = y - 32/2;
       this.obj = this.pGame.add.sprite(centerX, centerY, 'simple_tile');
+      this.obj.rotation = r;
+      this.obj.anchor.x = 0.5;
+      this.obj.anchor.y = 0.5;
       this.updateCalls = 0;
       this.renderCalls = 0;
       this.lastUpdateWindowStarted = 0;
@@ -22,6 +25,9 @@ define([], function(){
       ];
       this.type = type;
       this.id = id;
+
+
+      // this.pGame.physics.p2.enable(this.obj);
 
     },
 
@@ -72,17 +78,22 @@ define([], function(){
 
         var targetPos = {
           x: targetFrame.x,
-          y: targetFrame.y
+          y: targetFrame.y,
+          r: targetFrame.r
         };
 
         var prevPos = {
           x: previousFrame.x,
-          y: previousFrame.y
+          y: previousFrame.y,
+          r: previousFrame.r
         };
 
+        // this.obj.body.x = this.lerp(targetPos.x, prevPos.x, timePoint);
+        // this.obj.body.y = this.lerp(targetPos.y, prevPos.y, timePoint);
+        // this.obj.body
         this.obj.x = this.lerp(targetPos.x, prevPos.x, timePoint);
         this.obj.y = this.lerp(targetPos.y, prevPos.y, timePoint);
-
+        this.obj.rotation = this.lerp(targetPos.r, prevPos.r, timePoint);
 
       }
 
