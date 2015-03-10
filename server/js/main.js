@@ -41,7 +41,10 @@ function main(config) {
         
         for (var i = 0; i < units.length; i++) {
             var cu =  units[i];
-            sendProduceUnit( cu.x, cu.y, cu.r, cu.id, ws);
+
+            //data.unshift(data.length); could be used here instead for the first element, but will reduce performance
+            var data = [6, cu.x, cu.y, cu.r, cu.visionRadius, cu.id, cu.owner];
+            sendProduceUnit(data, ws);
         };  
         
 
@@ -57,6 +60,8 @@ function main(config) {
             if(data){
               if(data.action == gameUtils.EVENT_ACTION.PING){
                   pingReply(ws);
+              }else if(data.action == gameUtils.EVENT_INPUT.INPUT_BUFFER){
+                resolveInput(data.data);
               }
               // }else{
               //     stream.write(data.prepareForTransfer(0));
@@ -66,13 +71,12 @@ function main(config) {
 
         ws.on('close', function(){
             console.log("Client disconnected from server!");
-        })
+        });
     });
 
-
-    // process.on('uncaughtException', function (e) {
-    //     console.error('uncaughtException: ' + e);
-    // });
+    process.on('uncaughtException', function (e) {
+        console.error('uncaughtException: ' + e);
+    });
 }
 
 function simStateUpdate(x, y, id, t, ws){
@@ -83,8 +87,8 @@ function sendEntitiesSnapshot(data, ws) {
   sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, data), 2);  
 }
 
-function sendProduceUnit(x, y, r, id, ws){
-  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, [x, y, r, id]));
+function sendProduceUnit(data, ws){
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, data));
 }
 
 function sendWelcomeMessage(ws) {
@@ -98,6 +102,19 @@ function sendMessageToClient(ws, msg, bytesPerValue) {
   }
 }
 
+function resolveInput(buffer) {
+  var len = buffer[0];
+  for (var i = 0, j=1; i < len; i++, j++) {
+    console.log(j);
+    if(buffer[j] == gameUtils.EVENT_INPUT.MOUSE_CLICK){
+      var data = [buffer[j++], buffer[j++]];
+    }else if(buffer[j] == gameUtils.EVENT_INPUT.KEYBOARD_KEYPRESS){
+      var data = [buffer[j++]];
+    }
+  };
+  
+}
+
 function parseMessage(ws, msg, flags) {
   var msgObj;
   try{
@@ -105,7 +122,6 @@ function parseMessage(ws, msg, flags) {
       var data = null;
       if(msg.length > 1){
         var bytesPerValue = msg.readInt8(1);
-        console.log(bytesPerValue);
         data = new Array((msg.length - 2)/bytesPerValue);
         for (var i = 0,j=2; i < data.length; i++,j+=bytesPerValue) {
           if(bytesPerValue == 8){
@@ -124,7 +140,7 @@ function parseMessage(ws, msg, flags) {
         var data = JSON.parse(msg);
         var msgObj = new GameMessageEvent(msg.a, msg.d);
     }
-      return msgObj;
+    return msgObj;
   }catch(e){
     console.error("Error parsing client message");
     return false;
@@ -170,53 +186,91 @@ var tarX = 50,
     tarY = 50;
 
 var units = [];
-for (var i = 0; i < 1; i++) {
+for (var i = 0; i < 20; i++) {
   units[i] = {
-    x: i*32*Math.random(),
-    y: i*32*Math.random(),
+    x: 32*3,
+    y: 0,
     r: 0,
     id: i,
     directionX: 1,
-    directionY: 1
-  }
+    directionY: 1,
+    owner: i%2,
+    seenBy: [(i%2)+1],
+    visionRadius: 3
+  };
 };
 
+var t = true;
 
 setInterval(function(){
   var updatedUnits = [];
-  var xStep = 10;
-  var yStep = 10;
+  var xStep = (Math.random()*5)+7;
+  var yStep = (Math.random())+7;
   var xAccelerationMultiplier = 1;
   var yAccelerationMultiplier = 1;
+
+    // if((tickCount*tickRate)%1000 == 0){
+    //   if(t){
+    //     t = false;
+    //   }else{
+    //     t = true;
+    //   }
+    // }
+
   for (var i = 0; i < units.length; i++) {
     var now = Date.now();
     var u = units[i];
 
     if(u.x > 850){
       u.directionX = -1;
-      xAccelerationMultiplier = 5.1;
+      xAccelerationMultiplier = (Math.random()*3);
     }else if(u.x < 50){
       u.directionX = 1;
     }
 
     if(u.y > 550){
       u.directionY = -1;
-      yAccelerationMultiplier = 5.1;
+      yAccelerationMultiplier = (Math.random()*3);
     }else if(u.y < 50){
       u.directionY = 1;
     }
 
     u.x += (yStep*u.directionX)*xAccelerationMultiplier;
     u.y += (yStep*u.directionY)*yAccelerationMultiplier;
-    u.r +=1;
-    
+
+    // if(tickCount%12 == 0){
+    //   u.r +=0.7;
+    // }
+
+    // if((tickCount*tickRate)%1000 == 0){
+    //   if(t){
+    //     if(u.owner == 1){
+    //       u.seenBy = [1];
+    //     }else if(u.owner == 0){
+    //       u.seenBy = [0];
+    //     }
+    //   }else{
+    //     if(u.owner == 1){
+    //       u.seenBy = [0];
+    //     }else if(u.owner == 0){
+    //       u.seenBy = [1];
+    //     }
+    //   }
+    // }
+
     if(tickCount%updateInterval == 0){
+
+      updatedUnits.push(4 + u.seenBy.length);
       updatedUnits.push(u.x);
       updatedUnits.push(u.y);
       updatedUnits.push(u.r);
       updatedUnits.push(u.id);
+      for (var j = 0; j < u.seenBy.length; j++) {
+        updatedUnits.push(u.seenBy[j]);
+      };
     }
   }
+
   if(tickCount%updateInterval == 0){
     for (var j = 0; j < wss.clients.length; j++) {
       var ws = wss.clients[j];

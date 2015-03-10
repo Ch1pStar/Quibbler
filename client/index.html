@@ -3,6 +3,7 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
 	<title>insert random name here</title>
+	<link href='/assets/simple_tile.png' rel='shortcut icon' type='image/x-icon'>
 	<link rel="stylesheet" type="text/css" href="style/style.css">
 	<script type="text/javascript" src="js/lib/jquery-1.11.1.js"></script>
 	<script data-main="js/main" src="js/lib/require-jquery.js"></script>
@@ -12,17 +13,24 @@
 <h1>Testing Grounds</h1>
 <h2>Tread lightly</h2>
 
-<p>
-	Ping: <span id="ping-tracker">0</span>
-	Latency: <span id="latency-tracker">0</span>
-	Test value: <span id="t-value"></span>
-	Status: <span id="conn-value"></span>
-</p>
-<p>
-FPS: <span id="fps-tracker"></span>
-Time: <span id="time-tracker"></span>
-</p>
-<p>Mouse: <span id="cursor-tracker"></span></p>
-<span>(nothing is as it appears)</span>
+<div style="float:left; width: 350px">
+	<p>
+		Ping: <span id="ping-tracker">0</span>
+		Latency: <span id="latency-tracker">0</span>
+		Test value: <span id="t-value"></span>
+		Status: <span id="conn-value"></span>
+		Player:	<span id="playingplayer-value"></span>
+		<br/>
+		<a data-player="0" class="player-change" href="#">Become player 0</a>
+		<br/>
+		<a data-player="1" class="player-change" href="#">Become player 1</a>
+	</p>
+	<p>
+	FPS: <span id="fps-tracker"></span>
+	Time: <span id="time-tracker"></span>
+	</p>
+	<p>Mouse: <span id="cursor-tracker"></span></p>
+	<span>(nothing is as it appears)</span>
+</div>
 </body>
 </html>

@@ -15,9 +15,9 @@ requirejs.config({
 });
 
 define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 
-  'util','entities/entitymanager', 'audio/audiomanager', 'tilemap', 'lib/underscore-min'],
+  'util','entities/entitymanager', 'audio/audiomanager', 'tilemap', 'players/playermanager', 'lib/underscore-min'],
       function($, Class, Phaser, GameClient, EventQueue, GameMessageEvent, Util,  
-                                                EntityManager, AudioManager, TileMap) {
+                                                EntityManager, AudioManager, TileMap, PlayerManager) {
 
   /**
    * @public
@@ -48,7 +48,9 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
     this.eventQueue = new EventQueue(this.config.incomingClientMessageLimit);
     this.entityManager = null;
     this.audioManager = null;
+    this.playerManager = null;
     this.gameSystems = null;
+    this.inputBuffer = [];
     this.map;
 
     this.tickCount = 0;
@@ -205,13 +207,13 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
       this.map = new TileMap(game.add.tilemap('map'));
       this.map.addResources();
 
-
       var  layer = this.map.pMap.createLayer('Background');
       layer.resizeWorld();
 
       var walls = this.map.pMap.createLayer('Road');
       walls.resizeWorld();
-     
+
+
       //  Set the tiles for collision.
       //  Do this BEFORE generating the p2 bodies below.
       // this.map.pMap.setCollisionBetween(1, 12);
@@ -229,6 +231,10 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
       game.input.keyboard.addCallbacks(this, this.keyboardDownHandler, 
                       this.keyboardUpHandler, this.keyboardPressHandler);
 
+      this.initGameSystems();
+    },
+
+    initGameSystems: function(){
       var entityManagerConfig = {
         serverTickRate: this.serverTickRate,
         entityFrameHistoryLimit: 4,
@@ -236,9 +242,30 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
       };
       this.entityManager = new EntityManager(this.game, entityManagerConfig);
       this.audioManager = new AudioManager();
-      this.gameSystems = [this.entityManager, this.audioManager];
-    },
+      this.playerManager = new PlayerManager();
 
+      this.gameSystems = [this.entityManager, this.audioManager, this.playerManager];
+      try{
+        this.audioManager.setEventCallback(this.audioManagerEventHandler);
+        this.playerManager.setEventCallback(this.playerManagerEventHandler);
+        this.entityManager.setEventCallback(this.entityManagerEventHandler);
+      
+        for (var i = 0; i < this.gameSystems.length; i++) {
+          this.gameSystems[i].setEventCallbackContext(this);
+        };
+
+        this.playerManager.addTeam(0);
+        this.playerManager.addTeam(1, 0xFFFF00);
+        this.playerManager.addTeam(2, 0x00FF00);
+      
+        this.playerManager.addPlayer(1, 0, true);
+        this.playerManager.addPlayer(2, 1, false);
+
+        this.entityManager.addFogOfWar();
+      }catch(e){
+        console.log(e);
+      }
+    },
 
     /**
      * @private
@@ -297,13 +324,23 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
     },
 
     /**
-     * Client side input handler, used to highlight hovered enitites,
+     * Resolves the pooled user input commands from the last update interval,
+     * and used for client side input handling to highlight hovered enitites,
      * show help texts et cetera
      */
     resolveInputState: function(){
       var mousePointer = this.game.input.mousePointer;
       //TODO - Add actual UI interaction
       $('#cursor-tracker').text("X: "+mousePointer.x+" Y: "+mousePointer.y);
+
+      if(this.tickCount%this.serverUpdateInterval == 0 && this.inputBuffer.length > 0){
+        this.sendUserInput();
+      }
+    },
+
+    sendUserInput: function(){
+      this.client.sendInputBuffer(this.inputBuffer);
+      this.inputBuffer = [];
     },
 
     /**
@@ -312,8 +349,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
      */
     mouseClickHandler: function(pointer){
       console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
-      // console.log(this.map.layer.alive);     
-      this.client.sendClickMessage(pointer.x, pointer.y);
+      var e = new GameMessageEvent(Util.EVENT_INPUT.MOUSE_CLICK, [pointer.x, pointer.y]);
+      this.inputBuffer.push(e);
     },
 
     /**
@@ -329,11 +366,30 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
      * @param  {Phaser.KeyboardEvent} e
      */
     keyboardUpHandler: function(e){
-      this.client.sendKeypressMessage(e.keyCode);
+      var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);
+      this.inputBuffer.push(eventMessage);
     },
 
     keyboardPressHandler: function(keyAsChar){
     
+    },
+
+    audioManagerEventHandler: function(e){
+      console.log(e);
+    },
+
+    playerManagerEventHandler: function(e){
+      if(e.action == 'player-added'){
+        console.log("player %s added!", e.data.id);
+      }else if(e.action == 'playingplayer-change'){
+        this.entityManager.setPlayingPlayer(e.data);
+        console.log("Player %s is now the playing player!", e.data.id);
+        $('#playingplayer-value').text(e.data.id);
+      }
+    },
+
+    entityManagerEventHandler: function(e){
+      console.log(e);
     },
 
     /**
@@ -345,10 +401,11 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
       try{
         var action = e.action;
         if(action == Util.EVENT_ACTION.ENTITY_STATE_UPDATE){
+          // this.cc++
           this.entityManager.eventQueue.push(e);
         }else if(action == Util.EVENT_ACTION.PRODUCE){
-          this.entityManager.createEntity(e.data);
-          this.cc++;
+          this.entityManager.createEntity(e.data, this.playerManager.players[e.data[5]]);
+          // this.cc++;
           // console.log(this.cc);
         }else if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
 

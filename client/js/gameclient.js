@@ -86,7 +86,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      */
     onOpen: function(){
       this.connected = true;
-      this.enablePingPolling();
+      // this.enablePingPolling();
     },
 
     /**
@@ -129,21 +129,21 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
        * TODO Add actual logic - 
        * create game process event messages from the server snapshot
        */
-      // console.log(msgObj.data, msgObj.data.length);
-      for (var i = 0; i < msgObj.data.length; i+=4) {
-        
-        var x = msgObj.data[i];
-        var y = msgObj.data[i+1];
-        var r = msgObj.data[i+2];
-        var id = msgObj.data[i+3];
-        // console.log(msgObj.action, x,y,r,id);
+      var nextMessageLength = msgObj.data[0];
+      var j = 0;
+      // console.log(msgObj.data);
+      while(typeof nextMessageLength != 'undefined'){
+        var eventData = [];
+        for (var i = 0; i < nextMessageLength; i++) {
+          eventData.push(msgObj.data[j+1]);
+          j++;
+        };
         msgObjsArr.push(new GameMessageEvent(msgObj.action,
-                              [x,y,r,id], msgObj.timeStamp));
-      };
-
-      // console.log(msgObjsArr.length);
-      
-      // msgObjsArr.push(msgObj);
+                              eventData, msgObj.timeStamp));
+        j++;
+        // console.log(j, msgObj.data[j]);
+        nextMessageLength = msgObj.data[j];
+      }
       
       //Push generated events to core process message queue
       if(this.stateUpdateCallback != null){
@@ -276,6 +276,23 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
       var data = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS,
                                                                   [code, code, code]);
       this._sendMessage(data);
+    },
+
+    /**
+     * Sends the buffered user input from the last update interval
+     * @param  {array} buffer Array of user input event messages
+     */
+    sendInputBuffer: function(buffer){
+      var action = Util.EVENT_INPUT.INPUT_BUFFER;
+      var data = [buffer.length];
+      for (var i = 0; i < buffer.length; i++) {
+        var e = buffer[i];
+        data.push(e.action);
+        for (var j = 0; j < e.data.length; j++) {
+          data.push(e.data[j]);
+        };
+      };
+      this._sendMessage(new GameMessageEvent(action, data));
     },
 
     /**
