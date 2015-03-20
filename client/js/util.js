@@ -11,6 +11,7 @@ define({
   }),
 
   EVENT_INPUT: Object.freeze({
+    INPUT_BUFFER: 9,
     MOUSE_CLICK: 10,
     KEYBOARD_KEYPRESS: 11,
     MOUSE_DRAG_BEGIN: 12,

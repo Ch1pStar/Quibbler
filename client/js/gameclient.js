@@ -28,7 +28,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
       //Default config options
       this.config  = {
         transferMethod: 0, //binary
-        pingPollFrequency: 1000,
+        pingPollFrequency: 3000,
         incomingPacketDelay: 0
       };
     }
@@ -86,7 +86,6 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      */
     onOpen: function(){
       this.connected = true;
-
       this.enablePingPolling();
     },
 
@@ -107,7 +106,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
       if(this.isListening){
         var msgObj = this.parseMessage(e);
         if(msgObj.action == Util.EVENT_ACTION.WELCOME){
-          this.receiveWelcomeMessage(msgObj);
+          this.receiveWelcomeMessage(msgObj.data);
         }else if(msgObj.action == Util.EVENT_ACTION.PING){
           this.receivePingMessage(msgObj);
         }else{
@@ -130,7 +129,21 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
        * TODO Add actual logic - 
        * create game process event messages from the server snapshot
        */
-      msgObjsArr.push(msgObj);
+      var nextMessageLength = msgObj.data[0];
+      var j = 0;
+      // console.log(msgObj.data);
+      while(typeof nextMessageLength != 'undefined'){
+        var eventData = [];
+        for (var i = 0; i < nextMessageLength; i++) {
+          eventData.push(msgObj.data[j+1]);
+          j++;
+        };
+        msgObjsArr.push(new GameMessageEvent(msgObj.action,
+                              eventData, msgObj.timeStamp));
+        j++;
+        // console.log(j, msgObj.data[j]);
+        nextMessageLength = msgObj.data[j];
+      }
       
       //Push generated events to core process message queue
       if(this.stateUpdateCallback != null){
@@ -184,7 +197,6 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
       if(typeof disable == 'undefined'){
         disable = false;
       }
-
       var self = this;
       if(!disable){
         this.pingPollingIntervalId = setInterval(function(){
@@ -262,8 +274,25 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      */
     sendKeypressMessage: function(code){
       var data = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS,
-                                                                  [code]);
+                                                                  [code, code, code]);
       this._sendMessage(data);
+    },
+
+    /**
+     * Sends the buffered user input from the last update interval
+     * @param  {array} buffer Array of user input event messages
+     */
+    sendInputBuffer: function(buffer){
+      var action = Util.EVENT_INPUT.INPUT_BUFFER;
+      var data = [buffer.length];
+      for (var i = 0; i < buffer.length; i++) {
+        var e = buffer[i];
+        data.push(e.action);
+        for (var j = 0; j < e.data.length; j++) {
+          data.push(e.data[j]);
+        };
+      };
+      this._sendMessage(new GameMessageEvent(action, data));
     },
 
     /**
@@ -273,19 +302,28 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      * @return {Object} parsedData
      */
     parseMessage: function(e){
-      var msgArr = new Float64Array(e.data);
-      var action = msgArr[0] // first element indicates the action
+      var dw = new DataView(e.data);
+      var action = dw.getInt8(0) // first element indicates the action
       var data = null;
-      if(msgArr.length > 1){
-        data = new Float64Array(msgArr.length - 1);
-        for (var i = 0; i < data.length; i++) {
-          data[i] = msgArr[i+1];
+      if(dw.buffer.byteLength > 1){
+        var bytesPerValue = dw.getInt8(1);
+        data = new Array((dw.buffer.byteLength-2)/bytesPerValue);
+        for (var i = 0,j=2; i < data.length; i++,j+=bytesPerValue) {
+          if(bytesPerValue == 8){
+            data[i] = dw.getFloat64(j);
+          }else if(bytesPerValue == 4){
+            data[i] = dw.getFloat32(j);
+          }else if(bytesPerValue == 2){
+            data[i] = dw.getInt16(j);
+          }else if(bytesPerValue == 1){
+            data[i] = dw.getInt8(j);
+          }
         };
       }
       var ts = Date.now();
       var msgObj = new GameMessageEvent(action,
                               data, ts);
-      
+
       return msgObj;
     }
 

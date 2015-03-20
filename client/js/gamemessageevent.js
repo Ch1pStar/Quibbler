@@ -37,26 +37,36 @@ define([], function(){
   };
 
 
-  GameMessageEvent.prototype.prepareForTransfer = function(transferMethod) {
+  GameMessageEvent.prototype.prepareForTransfer = function(transferMethod, bytesPerValue) {
+    if(typeof bytesPerValue == 'undefined'){
+      bytesPerValue = 8;
+    }
     var data;
     if(transferMethod == 0){
+      var bufLength = this.data?(this.data.length*bytesPerValue)+2:1;
+      var buf = new ArrayBuffer(bufLength);
+      var dw = new DataView(buf);
+      dw.setInt8(0, this.action);
       if(this.data){
-        var h = new Float64Array(this.data);
-        data = new Float64Array(this.data.length+1);
-        data[0] = this.action;
-        for (var i = 0; i < h.length; i++) {
-          data[i+1] = h[i];
+        dw.setInt8(1, bytesPerValue);
+        for (var i = 0,j=2; i < this.data.length; i++,j+=bytesPerValue) {
+          if(bytesPerValue == 8){
+            dw.setFloat64(j, this.data[i]);
+          }else if(bytesPerValue == 4){
+            dw.setFloat32(j, this.data[i]);  
+          }else if (bytesPerValue == 2){
+            dw.setInt16(j, this.data[i]);
+          }else if (bytesPerValue == 1){
+            dw.setInt8(j, this.data[i]);
+          }
         };
-      }else{
-        data = new Float64Array([this.action]);
       }
-
+      return dw.buffer;
     }else if(transferMethod == 1){
 
     }else{
 
     }
-    return data.buffer;
   };
 
   return GameMessageEvent;

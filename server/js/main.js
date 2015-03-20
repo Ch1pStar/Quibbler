@@ -16,53 +16,37 @@ function getConfigFile(path, callback) {
         }
     });
 }
-
+var wss;
 function main(config) {
 
     var ws = require("ws"),
-        WebSocketServer = require('ws').Server, 
-        wss = new WebSocketServer({port: config.port});
+        WebSocketServer = require('ws').Server;
+
+    wss = new WebSocketServer({port: config.port});
 
     //INIT WORLD
 
     var stream = net.connect(3002);
 
     wss.on('connection', function(ws){
-        console.log("Client connected");
+        console.log("Client connected - %s",  ws._socket.remoteAddress);
 
         if(ws.supports.binary){
           ws.transferType = 0;
         }else{
           ws.transferType = 1;
         }
+
+        sendWelcomeMessage(ws);
         
-        var i = 0;
-        var pId = setInterval(function(){
-          sendProduceUnit( 150, 150, ws);
-          if(i++>=150)
-            clearInterval(pId);
-        }, 100);
-        var tarX = 50,
-            tarY = 50;
+        for (var i = 0; i < units.length; i++) {
+            var cu =  units[i];
 
-        var tt = setInterval(function(){
-          // var now = (new Date()).getTime();
-          var now = Date.now();
-          if(tarX>800){
-            tarX = 0;
-            // tarY = 30;
-          }else{
-            tarX +=  12 //(Math.random()*35) + 40;
-          }
-          if(tarY > 350){
-            // tarX = 30;
-            tarY = 0;
-          }else{
-            tarY += 10 //(Math.random()*20) + 20;
-          }
-          simStateUpdate(tarX, tarY, now, ws);
-        }, 200);
-
+            //data.unshift(data.length); could be used here instead for the first element, but will reduce performance
+            var data = [6, cu.x, cu.y, cu.r, cu.visionRadius, cu.id, cu.owner];
+            sendProduceUnit(data, ws);
+        };  
+        
 
         // setTimeout(function(){
         //   clearInterval(tt);
@@ -73,11 +57,11 @@ function main(config) {
 
             var data = parseMessage(ws, msg, flags);
 
-            // sendMessageToClient(ws, {a: gameUtils.EVENT_ACTION.WELCOME});
-
             if(data){
               if(data.action == gameUtils.EVENT_ACTION.PING){
                   pingReply(ws);
+              }else if(data.action == gameUtils.EVENT_INPUT.INPUT_BUFFER){
+                resolveInput(data.data);
               }
               // }else{
               //     stream.write(data.prepareForTransfer(0));
@@ -87,7 +71,7 @@ function main(config) {
 
         ws.on('close', function(){
             console.log("Client disconnected from server!");
-        })
+        });
     });
 
     process.on('uncaughtException', function (e) {
@@ -95,41 +79,68 @@ function main(config) {
     });
 }
 
-function simStateUpdate(x, y, t, ws){
-  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, [x,y,t]));
+function simStateUpdate(x, y, id, t, ws){
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, [x, y, id,t]));
 }
 
-function sendProduceUnit(x, y, ws){
-  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, [x, y]));
+function sendEntitiesSnapshot(data, ws) {
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, data), 2);  
 }
 
-function sendMessageToClient(ws, msg) {
-    var data = msg.prepareForTransfer(ws.transferType);
-    if(data){
-      return ws.send(data);
+function sendProduceUnit(data, ws){
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.PRODUCE, data));
+}
+
+function sendWelcomeMessage(ws) {
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.WELCOME, [tickCount, tickRate, updateInterval]));
+}
+
+function sendMessageToClient(ws, msg, bytesPerValue) {
+  var data = msg.prepareForTransfer(ws.transferType, bytesPerValue);
+  if(data){
+    return ws.send(data);
+  }
+}
+
+function resolveInput(buffer) {
+  var len = buffer[0];
+  for (var i = 0, j=1; i < len; i++, j++) {
+    console.log(j);
+    if(buffer[j] == gameUtils.EVENT_INPUT.MOUSE_CLICK){
+      var data = [buffer[j++], buffer[j++]];
+    }else if(buffer[j] == gameUtils.EVENT_INPUT.KEYBOARD_KEYPRESS){
+      var data = [buffer[j++]];
     }
+  };
+  
 }
 
 function parseMessage(ws, msg, flags) {
   var msgObj;
   try{
     if(ws.transferType == 0){
-
-      var buff = new Buffer(msg);
       var data = null;
-      if(buff.length > 8){
-        data = new Array((buff.length - 8)/8);
-        for (var i = 8, p = 0; i < buff.length - 7; i += 8, ++p){
-          data[p] = buff.readDoubleLE(i);
+      if(msg.length > 1){
+        var bytesPerValue = msg.readInt8(1);
+        data = new Array((msg.length - 2)/bytesPerValue);
+        for (var i = 0,j=2; i < data.length; i++,j+=bytesPerValue) {
+          if(bytesPerValue == 8){
+            data[i] = msg.readDoubleBE(j);
+          }else if(bytesPerValue == 4){
+            data[i] = msg.readFloatBE(j);
+          }else if(bytesPerValue == 2){
+            data[i] = msg.readInt16BE(j);
+          }else if(bytesPerValue == 1){
+            data[i] = msg.readInt8(j);
+          }
         }
-      }
-      msgObj = new GameMessageEvent(buff.readDoubleLE(0), data);
-
+      }     
+      msgObj = new GameMessageEvent(msg.readInt8(0), data);
     }else{
         var data = JSON.parse(msg);
         var msgObj = new GameMessageEvent(msg.a, msg.d);
     }
-      return msgObj;
+    return msgObj;
   }catch(e){
     console.error("Error parsing client message");
     return false;
@@ -139,15 +150,15 @@ function parseMessage(ws, msg, flags) {
 }
 
 function pingReply(ws) {
-    var date =new Date(); 
+    var date = new Date(); 
     var ts = date.getTime();
     var timeZone = date.getTimezoneOffset(); 
-    var d =[ts, timeZone];
+    var d = [ts, timeZone];
     var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING,
                               d, ts);
     
     // var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING, null, ts);
-    sendMessageToClient(ws, data);
+    sendMessageToClient(ws, data, 8);
 }
 
 function startServer() {
@@ -166,3 +177,105 @@ function startServer() {
 }
 
 startServer();
+
+var tickRate = 1000/60;
+var tickCount = 0; 
+var updateInterval = 3; //send a client update every updateInterval ticks
+
+var tarX = 50,
+    tarY = 50;
+
+var units = [];
+for (var i = 0; i < 5; i++) {
+  units[i] = {
+    x: 32*3,
+    y: 0,
+    r: 0,
+    id: i,
+    directionX: 1,
+    directionY: 1,
+    owner: i%2,
+    seenBy: [(i%2)+1],
+    visionRadius: 4
+  };
+};
+
+var t = true;
+
+setInterval(function(){
+  var updatedUnits = [];
+  var xStep = (Math.random()*5)+7;
+  var yStep = (Math.random())+7;
+  var xAccelerationMultiplier = 1;
+  var yAccelerationMultiplier = 1;
+
+    // if((tickCount*tickRate)%1000 == 0){
+    //   if(t){
+    //     t = false;
+    //   }else{
+    //     t = true;
+    //   }
+    // }
+
+  for (var i = 0; i < units.length; i++) {
+    var now = Date.now();
+    var u = units[i];
+
+    if(u.x > 800){
+      u.directionX = -1;
+      xAccelerationMultiplier = (Math.random()*3);
+    }else if(u.x < 50){
+      u.directionX = 1;
+    }
+
+    if(u.y > 600){
+      u.directionY = -1;
+      yAccelerationMultiplier = (Math.random()*3);
+    }else if(u.y < 50){
+      u.directionY = 1;
+    }
+
+    u.x += (yStep*u.directionX)*xAccelerationMultiplier;
+    u.y += (yStep*u.directionY)*yAccelerationMultiplier;
+
+    // if(tickCount%12 == 0){
+    //   u.r +=0.7;
+    // }
+
+    // if((tickCount*tickRate)%1000 == 0){
+    //   if(t){
+    //     if(u.owner == 1){
+    //       u.seenBy = [1];
+    //     }else if(u.owner == 0){
+    //       u.seenBy = [0];
+    //     }
+    //   }else{
+    //     if(u.owner == 1){
+    //       u.seenBy = [0];
+    //     }else if(u.owner == 0){
+    //       u.seenBy = [1];
+    //     }
+    //   }
+    // }
+
+    if(tickCount%updateInterval == 0){
+
+      updatedUnits.push(4 + u.seenBy.length);
+      updatedUnits.push(u.x);
+      updatedUnits.push(u.y);
+      updatedUnits.push(u.r);
+      updatedUnits.push(u.id);
+      for (var j = 0; j < u.seenBy.length; j++) {
+        updatedUnits.push(u.seenBy[j]);
+      };
+    }
+  }
+
+  if(tickCount%updateInterval == 0){
+    for (var j = 0; j < wss.clients.length; j++) {
+      var ws = wss.clients[j];
+      sendEntitiesSnapshot(updatedUnits, ws);
+    };
+  }
+  tickCount++;
+}, tickRate);
