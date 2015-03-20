@@ -14,10 +14,13 @@ requirejs.config({
   }
 });
 
-define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessageevent', 
-  'util','entities/entitymanager', 'audio/audiomanager', 'tilemap', 'players/playermanager', 'lib/underscore-min'],
-      function($, Class, Phaser, GameClient, EventQueue, GameMessageEvent, Util,  
-                                                EntityManager, AudioManager, TileMap, PlayerManager) {
+define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
+        'gamemessageevent','util','entities/entitymanager',
+        'audio/audiomanager', 'tilemap', 'players/playermanager',
+        'eventdispatcher', 'lib/underscore-min',],
+      function($, Class, Phaser, GameClient, EventQueue, 
+                GameMessageEvent, Util, EntityManager, 
+                AudioManager, TileMap, PlayerManager, EventDispatcher) {
 
   /**
    * @public
@@ -30,7 +33,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
     }else{
       //Default config options
       this.config = {
-        mapUrl: 'assets/zambies.json',
+        mapUrl: 'assets/zambiers.json',
         clientWindowWidth : 1216,
         gameClientType: Util.GAME_CLIENT_TYPE.NETWORK_GAME, // 0 - network game, 1 - single player, 2 - replay
         gameClientSettings: {
@@ -141,12 +144,16 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
       this.serverUpdateInterval = data[2];
     
       var wWidth = $(window).width();
-      var gameWidth = this.config.clientWindowWidth;
-      if(wWidth < gameWidth){
-        gameWidth = wWidth - 50;
-      }
+      var gameWidth = wWidth;
+      // var gameWidth = this.config.clientWindowWidth;
+      // if(wWidth < gameWidth){
+        // gameWidth = wWidth - 50;
+      // }
+           
+      var wHeight = $(window).height();
+      var gameHeight = wHeight - 250;
 
-      this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', {
+      this.game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, '', {
         preload: this.caller(this.preload),
         create: this.caller(this.create), 
         update: this.caller(this.update), 
@@ -183,8 +190,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
 
 
       this.game.load.image('bg', 'assets/bg_tile.png');
-      this.game.load.image('road', 'assets/road_pattern.png');
-      this.game.load.image('road_corners', 'assets/road_corners.png');
+      // this.game.load.image('road', 'assets/road_pattern.png');
+      // this.game.load.image('road_corners', 'assets/road_corners.png');
 
 
       this.game.load.image('simple_tile', 'assets/simple_tile.png');
@@ -210,8 +217,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
       var  layer = this.map.pMap.createLayer('Background');
       layer.resizeWorld();
 
-      var walls = this.map.pMap.createLayer('Road');
-      walls.resizeWorld();
+      // var walls = this.map.pMap.createLayer('Road');
+      // walls.resizeWorld();
 
 
       //  Set the tiles for collision.
@@ -238,7 +245,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue', 'gamemessag
       var entityManagerConfig = {
         serverTickRate: this.serverTickRate,
         entityFrameHistoryLimit: 4,
-        serverUpdateInterval: this.serverUpdateInterval
+        serverUpdateInterval: this.serverUpdateInterval,
+        map: this.map
       };
       this.entityManager = new EntityManager(this.game, entityManagerConfig);
       this.audioManager = new AudioManager();

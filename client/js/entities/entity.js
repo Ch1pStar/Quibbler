@@ -10,16 +10,17 @@ define([], function(){
       this.id = config.id;
       this.owner = config.owner;
       this.manager = config.manager;
-      var centerX = config.x - 32/2;
-      var centerY = config.y - 32/2;
+      this.tileWidth = this.manager.tileMap.pMap.tileWidth;
+      this.tileHeight = this.manager.tileMap.pMap.tileHeight;
+      var centerX = config.x - this.tileWidth/2;
+      var centerY = config.y - this.tileHeight/2;
 
       this.visionRadius =  config.visionRadius;
 
       var grphx = this.pGame.add.graphics(config.x, config.y);  //init rect
       grphx.lineStyle(1, this.owner.team.color, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings
       grphx.beginFill(this.owner.team.color*.4, .2) // color (0xFFFF0B), alpha (0 -> 1) // required settings
-      grphx.drawRect(0, 0, 32, 32); // x, y, width, height
-
+      grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
 
       // this.t = grphx;
       this.obj = grphx;
@@ -149,8 +150,8 @@ define([], function(){
       // console.log(frame.seenBy.length, this.manager.playingPlayer.team.id);
       for (var i = 0; i < frame.seenBy.length; i++) {
         if(frame.seenBy[i] == this.manager.playingPlayer.team.id){
-          var column = Math.round(this.obj.x/32);
-          var row = Math.round(this.obj.y/32);
+          var column = Math.round(this.obj.x/this.tileWidth);
+          var row = Math.round(this.obj.y/this.tileHeight);
           try{
             this.fillFogMaskCircle(column, row, this.visionRadius);
           }catch(e){
@@ -173,8 +174,9 @@ define([], function(){
         // this.manager.fogMask[x + x0][y + y0] = 1;
         // this.manager.fogMask[-x + x0][y + y0] = 1;
         
-        this.manager.fogMask[y + x0][x + y0] = 1;
-        this.manager.fogMask[-y + x0][x + y0] = 1;
+        // this.manager.fogMask[y + x0][x + y0] = 1;
+        // this.manager.fogMask[-y + x0][x + y0] = 1;
+
         
         var leftC = -x + x0;
         var leftR = -y + y0;
@@ -182,20 +184,26 @@ define([], function(){
         var rightR = -y + y0;
         // this.manager.fogMask[leftC][leftR] = 1;
         // this.manager.fogMask[rightC][rightR] = 1;
+        
+        this.fillFogMaskLine(-y + x0, y + x0, -x + y0, -x + y0);
+        
         this.fillFogMaskLine(leftC, rightC, leftR, rightR);
-        
-        this.manager.fogMask[-y + x0][-x + y0] = 1;
-        this.manager.fogMask[y + x0][-x + y0] = 1;
-        
         this.fillFogMaskLine(x0-x, x0+x, y0+y, y0+y);
         
+        this.fillFogMaskLine(-y + x0, y + x0, x + y0, x + y0);
+
+        // this.manager.fogMask[-y + x0][-x + y0] = 1;
+        // this.manager.fogMask[y + x0][-x + y0] = 1;
+        
+        
+
+
+        
         y++;
-        if (radiusError<0)
-        {
+        if (radiusError<0){
           radiusError += 2 * y + 1;
         }
-        else
-        {
+        else{
           x--;
           radiusError += 2 * (y - x) + 1;
         }

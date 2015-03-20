@@ -186,7 +186,7 @@ var tarX = 50,
     tarY = 50;
 
 var units = [];
-for (var i = 0; i < 20; i++) {
+for (var i = 0; i < 5; i++) {
   units[i] = {
     x: 32*3,
     y: 0,
@@ -196,7 +196,7 @@ for (var i = 0; i < 20; i++) {
     directionY: 1,
     owner: i%2,
     seenBy: [(i%2)+1],
-    visionRadius: 3
+    visionRadius: 4
   };
 };
 
@@ -221,14 +221,14 @@ setInterval(function(){
     var now = Date.now();
     var u = units[i];
 
-    if(u.x > 850){
+    if(u.x > 800){
       u.directionX = -1;
       xAccelerationMultiplier = (Math.random()*3);
     }else if(u.x < 50){
       u.directionX = 1;
     }
 
-    if(u.y > 550){
+    if(u.y > 600){
       u.directionY = -1;
       yAccelerationMultiplier = (Math.random()*3);
     }else if(u.y < 50){

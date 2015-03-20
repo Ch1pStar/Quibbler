@@ -8,6 +8,7 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
     init: function(pGame, config){
       this._super();
       this.pGame = pGame;
+      this.tileMap = config.map;
       this.entities = [];
       this.maxEntityFrames = config.entityFrameHistoryLimit;
       this.entityLerpMsec = config.serverTickRate*config.serverUpdateInterval;
@@ -18,15 +19,19 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
     },
 
     addFogOfWar: function(){
-      this.fogMask = new Array(38);
+      var mapWidth = this.tileMap.pMap.width;
+      var mapHeight = this.tileMap.pMap.height;
+      var tileWidth = this.tileMap.pMap.tileWidth;
+      var tileHeight = this.tileMap.pMap.tileHeight;
+      this.fogMask = new Array(mapWidth);
       this.fogMaskGroup = new Phaser.Group(this.pGame);
-      for (var i = 0; i < 38; i++) {
-        this.fogMask[i] = new Array(22);
-        for (var j = 0; j < 22; j++) {
-          var fogTile = this.pGame.add.graphics(i*32,j*32);
+      for (var i = 0; i < mapWidth; i++) {
+        this.fogMask[i] = new Array(mapHeight);
+        for (var j = 0; j < mapHeight; j++) {
+          var fogTile = this.pGame.add.graphics(i*tileWidth,j*tileHeight);
           fogTile.lineStyle(0, 0xAAAAAA, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings
           fogTile.beginFill(0xBBBBBB, .4) // color (0xFFFF0B), alpha (0 -> 1) // required settings
-          fogTile.drawRect(0, 0, 32, 32); // x, y, width, height
+          fogTile.drawRect(0, 0, tileHeight, tileHeight); // x, y, width, height
           this.fogMaskGroup.addChild(fogTile);
           this.fogMask[i][j] = 0;
         };

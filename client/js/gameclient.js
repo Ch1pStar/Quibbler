@@ -86,7 +86,7 @@ define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'],
      */
     onOpen: function(){
       this.connected = true;
-      // this.enablePingPolling();
+      this.enablePingPolling();
     },
 
     /**

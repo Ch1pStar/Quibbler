@@ -12,8 +12,8 @@ define([], function(){
     addResources: function(){
 
       this.pMap.addTilesetImage('bg');
-      this.pMap.addTilesetImage('road');
-      this.pMap.addTilesetImage('road_corners');
+      // this.pMap.addTilesetImage('road');
+      // this.pMap.addTilesetImage('road_corners');
       // this.pMap.addTilesetImage('Grass');
       // this.pMap.addTilesetImage('Water');
       // this.pMap.addTilesetImage('ground_1x1');
