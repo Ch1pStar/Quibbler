@@ -3,7 +3,7 @@
  *  and parsing data into game commands.
  */
 
-define(['gamemessageevent', 'TCPConnectionFactory', 'util', 'lib/bison'], 
+define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'], 
       function(GameMessageEvent, TCPConnectionFactory, Util){
 
   /**

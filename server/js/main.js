@@ -1,7 +1,6 @@
 var fs = require('fs'),
   configPath = './server/config.json';
 var net = require('net');
-var BISON = require('bison');
 var GameMessageEvent = require('./gamemessageevent.js');
 
 var gameUtils = require('./GameUtils.js');
