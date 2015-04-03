@@ -37,20 +37,20 @@ function main(config) {
         }
 
         sendWelcomeMessage(ws);
-        
+
         for (var i = 0; i < units.length; i++) {
             var cu =  units[i];
 
             //data.unshift(data.length); could be used here instead for the first element, but will reduce performance
             var data = [6, cu.x, cu.y, cu.r, cu.visionRadius, cu.id, cu.owner];
             sendProduceUnit(data, ws);
-        };  
-        
+        };
+
 
         // setTimeout(function(){
         //   clearInterval(tt);
         // }, 5000);
-        
+
 
         ws.on('message', function(msg, flags){
 
@@ -65,7 +65,7 @@ function main(config) {
               // }else{
               //     stream.write(data.prepareForTransfer(0));
               // }
-            }            
+            }
         })
 
         ws.on('close', function(){
@@ -83,7 +83,7 @@ function simStateUpdate(x, y, id, t, ws){
 }
 
 function sendEntitiesSnapshot(data, ws) {
-  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, data), 2);  
+  sendMessageToClient(ws, new GameMessageEvent(gameUtils.EVENT_ACTION.ENTITY_STATE_UPDATE, data), 2);
 }
 
 function sendProduceUnit(data, ws){
@@ -96,6 +96,7 @@ function sendWelcomeMessage(ws) {
 
 function sendMessageToClient(ws, msg, bytesPerValue) {
   var data = msg.prepareForTransfer(ws.transferType, bytesPerValue);
+  console.log(typeof data);
   if(data){
     return ws.send(data);
   }
@@ -111,7 +112,7 @@ function resolveInput(buffer) {
       var data = [buffer[j++]];
     }
   };
-  
+
 }
 
 function parseMessage(ws, msg, flags) {
@@ -133,7 +134,7 @@ function parseMessage(ws, msg, flags) {
             data[i] = msg.readInt8(j);
           }
         }
-      }     
+      }
       msgObj = new GameMessageEvent(msg.readInt8(0), data);
     }else{
         var data = JSON.parse(msg);
@@ -149,13 +150,13 @@ function parseMessage(ws, msg, flags) {
 }
 
 function pingReply(ws) {
-    var date = new Date(); 
+    var date = new Date();
     var ts = date.getTime();
-    var timeZone = date.getTimezoneOffset(); 
+    var timeZone = date.getTimezoneOffset();
     var d = [ts, timeZone];
     var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING,
                               d, ts);
-    
+
     // var data = new GameMessageEvent(gameUtils.EVENT_ACTION.PING, null, ts);
     sendMessageToClient(ws, data, 8);
 }
@@ -172,20 +173,20 @@ function startServer() {
             console.error("Server cannot start without a configuration file.");
             process.exit(1);
         }
-    });  
+    });
 }
 
 startServer();
 
 var tickRate = 1000/60;
-var tickCount = 0; 
+var tickCount = 0;
 var updateInterval = 3; //send a client update every updateInterval ticks
 
 var tarX = 50,
     tarY = 50;
 
 var units = [];
-for (var i = 0; i < 5; i++) {
+for (var i = 0; i < 25; i++) {
   units[i] = {
     x: 32*3,
     y: 0,

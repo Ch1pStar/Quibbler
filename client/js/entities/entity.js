@@ -18,8 +18,8 @@ define([], function(){
       this.visionRadius =  config.visionRadius;
 
       var grphx = this.pGame.add.graphics(config.x, config.y);  //init rect
-      grphx.lineStyle(1, this.owner.team.color, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings
-      grphx.beginFill(this.owner.team.color*.4, .2) // color (0xFFFF0B), alpha (0 -> 1) // required settings
+      grphx.lineStyle(1, this.owner.team.color, 1); // width, color // required settings
+      grphx.beginFill(this.owner.team.color, .2) // color  // required settings
       grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
 
       // this.t = grphx;
@@ -37,7 +37,8 @@ define([], function(){
         {
           x: this.obj.x,
           y: this.obj.y,
-          t: this.pGame.time.now
+          t: this.pGame.time.now,
+          seenBy: []
         }
       ];
 
@@ -55,7 +56,7 @@ define([], function(){
     },
 
     update: function(){
-      
+
       // if(!this.obj.visible){
       //   return;
       // }
@@ -73,7 +74,7 @@ define([], function(){
     },
 
     show: function(){
-      this.obj.visible = true;  
+      this.obj.visible = true;
     },
 
     hide: function(){
@@ -169,36 +170,36 @@ define([], function(){
       var x = radius;
       var y = 0;
       var radiusError = 1-x;
-       
+
       while(x >= y){
         // this.manager.fogMask[x + x0][y + y0] = 1;
         // this.manager.fogMask[-x + x0][y + y0] = 1;
-        
+
         // this.manager.fogMask[y + x0][x + y0] = 1;
         // this.manager.fogMask[-y + x0][x + y0] = 1;
 
-        
+
         var leftC = -x + x0;
         var leftR = -y + y0;
         var rightC = x + x0;
         var rightR = -y + y0;
         // this.manager.fogMask[leftC][leftR] = 1;
         // this.manager.fogMask[rightC][rightR] = 1;
-        
+
         this.fillFogMaskLine(-y + x0, y + x0, -x + y0, -x + y0);
-        
+
         this.fillFogMaskLine(leftC, rightC, leftR, rightR);
         this.fillFogMaskLine(x0-x, x0+x, y0+y, y0+y);
-        
+
         this.fillFogMaskLine(-y + x0, y + x0, x + y0, x + y0);
 
         // this.manager.fogMask[-y + x0][-x + y0] = 1;
         // this.manager.fogMask[y + x0][-x + y0] = 1;
-        
-        
 
 
-        
+
+
+
         y++;
         if (radiusError<0){
           radiusError += 2 * y + 1;
@@ -214,7 +215,7 @@ define([], function(){
       var deltax = x1 - x0;
       var deltay = y1 - y0;
       var error = 0;
-      var deltaerr = Math.abs(deltay / deltax); 
+      var deltaerr = Math.abs(deltay / deltax);
       var y = y0;
       for(var x = x0; x <= x1; x++){
         this.manager.fogMask[x][y] = 1;
@@ -226,23 +227,23 @@ define([], function(){
         }
       }
     },
-    
-    lerp: function(p, n, t) { 
+
+    lerp: function(p, n, t) {
       var _t = Number(t);
       _t = (Math.max(0, Math.min(1, _t)));
-      return (p + _t * (n - p)); 
-      
+      return (p + _t * (n - p));
+
       // Bezier curve(something is wrong)
       // var b = (Math.random()*Math.abs(p-n)) + n;
-      // return (Math.pow((1 - _t), 2)*n) + ((2*_t)*(1-_t))*b + Math.pow(_t,2)*p;  
+      // return (Math.pow((1 - _t), 2)*n) + ((2*_t)*(1-_t))*b + Math.pow(_t,2)*p;
     },
 
     //Simple linear interpolation between 2 vectors
-    v_lerp: function(v,tv,t) { 
-      return { 
-        x: this.lerp(v.x, tv.x, t), 
-        y:this.lerp(v.y, tv.y, t) 
-      }; 
+    v_lerp: function(v,tv,t) {
+      return {
+        x: this.lerp(v.x, tv.x, t),
+        y:this.lerp(v.y, tv.y, t)
+      };
     }
 
   });

@@ -36,7 +36,7 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
           this.fogMask[i][j] = 0;
         };
       };
-      
+
     },
 
     createEntity: function(data, owner){
@@ -44,8 +44,8 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
         x: data[0],
         y: data[1],
         r: data[2],
-        visionRadius: data[3],
-        id: data[4],
+        id: data[3],
+        visionRadius: data[4],
         type: 10,
         owner: owner,
         manager: this

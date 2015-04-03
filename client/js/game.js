@@ -18,8 +18,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
         'gamemessageevent','util','entities/entitymanager',
         'audio/audiomanager', 'tilemap', 'players/playermanager',
         'eventdispatcher', 'lib/underscore-min',],
-      function($, Class, Phaser, GameClient, EventQueue, 
-                GameMessageEvent, Util, EntityManager, 
+      function($, Class, Phaser, GameClient, EventQueue,
+                GameMessageEvent, Util, EntityManager,
                 AudioManager, TileMap, PlayerManager, EventDispatcher) {
 
   /**
@@ -34,7 +34,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       //Default config options
       this.config = {
         mapUrl: 'assets/zambiers.json',
-        clientWindowWidth : 1216,
+        clientWindowWidth : 850,
         gameClientType: Util.GAME_CLIENT_TYPE.NETWORK_GAME, // 0 - network game, 1 - single player, 2 - replay
         gameClientSettings: {
           serverAddress: window.location.hostname,
@@ -43,7 +43,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
         incomingClientMessageLimit: 22500
       };
     }
-    
+
     this.game = null;
     this.client = null;
     this.serverPing = 0;
@@ -59,7 +59,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     this.tickCount = 0;
     this.serverTickRate = 0;
     this.serverUpdateInterval = 0;
-    
+
     //Dev testing stuff, detele when done
     this.cc = 0;
 
@@ -81,18 +81,18 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       // }
       // this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', {
       //   preload: this.caller(this.preload),
-      //   create: this.caller(this.create), 
-      //   update: this.caller(this.update), 
-      //   render: this.caller(this.render), 
-      //   forceSetTimeOut: false 
+      //   create: this.caller(this.create),
+      //   update: this.caller(this.update),
+      //   render: this.caller(this.render),
+      //   forceSetTimeOut: false
       // });
 
-      //Connect to game server after local client is initialized 
+      //Connect to game server after local client is initialized
       //and server event handlers are set
       this.connect();
 
       var self = this;
-      
+
       window.onfocus = function(){
         self.client.isListening = true;
       }
@@ -142,23 +142,23 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       this.tickCount = data[0];
       this.serverTickRate = data[1];
       this.serverUpdateInterval = data[2];
-    
-      var wWidth = $(window).width();
-      var gameWidth = wWidth;
+
+      // var wWidth = $(window).width();
+      var gameWidth = 1300;
       // var gameWidth = this.config.clientWindowWidth;
       // if(wWidth < gameWidth){
         // gameWidth = wWidth - 50;
       // }
-           
+
       var wHeight = $(window).height();
       var gameHeight = wHeight - 250;
 
       this.game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, '', {
         preload: this.caller(this.preload),
-        create: this.caller(this.create), 
-        update: this.caller(this.update), 
-        render: this.caller(this.render), 
-        forceSetTimeOut: false 
+        create: this.caller(this.create),
+        update: this.caller(this.update),
+        render: this.caller(this.render),
+        forceSetTimeOut: false
       });
 
     },
@@ -182,7 +182,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     preload : function() {
 
       var config = this.config;
-      this.game.load.tilemap('map', config.mapUrl, null, 
+      this.game.load.tilemap('map', config.mapUrl, null,
                               Phaser.Tilemap.TILED_JSON);
       this.game.load.image('ground_1x1', 'assets/ground_1x1.png');
       this.game.load.image('Grass', 'assets/FeThD.png');
@@ -206,7 +206,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      */
     create : function() {
       var game = this.game;
-      
+
       game.physics.startSystem(Phaser.Physics.P2JS);
 
       game.stage.backgroundColor = '#2d2d2d';
@@ -225,7 +225,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       //  Do this BEFORE generating the p2 bodies below.
       // this.map.pMap.setCollisionBetween(1, 12);
 
-      //  Convert the tilemap layer into bodies. 
+      //  Convert the tilemap layer into bodies.
       //  Only tiles that collide (see above) are created.
       //  This call returns an array of body objects which
       //  you can perform addition actions on if required.
@@ -235,7 +235,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       game.physics.p2.setBoundsToWorld(true, true, true, true, false);
 
       game.input.onDown.add(this.mouseClickHandler, this);
-      game.input.keyboard.addCallbacks(this, this.keyboardDownHandler, 
+      game.input.keyboard.addCallbacks(this, this.keyboardDownHandler,
                       this.keyboardUpHandler, this.keyboardPressHandler);
 
       this.initGameSystems();
@@ -257,17 +257,18 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
         this.audioManager.setEventCallback(this.audioManagerEventHandler);
         this.playerManager.setEventCallback(this.playerManagerEventHandler);
         this.entityManager.setEventCallback(this.entityManagerEventHandler);
-      
+
         for (var i = 0; i < this.gameSystems.length; i++) {
           this.gameSystems[i].setEventCallbackContext(this);
         };
 
-        this.playerManager.addTeam(0);
-        this.playerManager.addTeam(1, 0xFFFF00);
-        this.playerManager.addTeam(2, 0x00FF00);
-      
-        this.playerManager.addPlayer(1, 0, true);
-        this.playerManager.addPlayer(2, 1, false);
+        this.playerManager.addTeam(0, 0xF28511);
+        this.playerManager.addTeam(1, 0x00FF00);
+        this.playerManager.addTeam(2, 0xDDFFDD);
+
+        this.playerManager.addPlayer(0, 0, false);
+        this.playerManager.addPlayer(1, 1, true);
+        this.playerManager.addPlayer(2, 2, false);
 
         this.entityManager.addFogOfWar();
       }catch(e){
@@ -283,7 +284,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
 
       //Execute the queued events for the current update cycle
       while(!this.eventQueue.empty()){
-        this.executeEvent(this.eventQueue.next());      
+        this.executeEvent(this.eventQueue.next());
       }
 
       for (var i = 0; i < this.gameSystems.length; i++) {
@@ -321,7 +322,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
         this.gameSystems[i].processRender();
       };
     },
-    
+
     /**
      * @private
      * Resource change command handler
@@ -366,7 +367,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * @param  {Phaser.KeyboardEvent} e
      */
     keyboardDownHandler: function(e){
-    
+
     },
 
     /**
@@ -379,7 +380,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     },
 
     keyboardPressHandler: function(keyAsChar){
-    
+
     },
 
     audioManagerEventHandler: function(e){
@@ -423,7 +424,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       }
       finally{
         // console.log('Event: %s\n\t%o', e.action, e);
-      } 
+      }
     },
 
     caller: function (fn) {

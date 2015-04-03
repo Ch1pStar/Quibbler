@@ -3,7 +3,7 @@
  *  and parsing data into game commands.
  */
 
-define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'], 
+define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
       function(GameMessageEvent, TCPConnectionFactory, Util){
 
   /**
@@ -21,7 +21,7 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
     this.pingCallback = null;
     this.lastPingSentAt = 0;
     this.isListening = true;
-    
+
     if(typeof config !== 'undefined'){
       this.config = config;
     }else{
@@ -46,12 +46,12 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
      */
     connect: function(host, port, callbackContext){
       if(typeof callbackContext === 'undefined'){
-        console.error('A  callback context is required '+ 
+        console.error('A  callback context is required '+
                         'to deliver server messages!');
       }
       if(this.welcomeCallback == null || this.stateUpdateCallback == null){
         console.error('Welcome message and state update callbacks '+
-                      'are required to deliver server messages!'); 
+                      'are required to deliver server messages!');
       }
       if(this.pingCallback == null){
         console.warn('Missing ping callback, this feature will be unavailable!');
@@ -86,7 +86,7 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
      */
     onOpen: function(){
       this.connected = true;
-      this.enablePingPolling();
+      // this.enablePingPolling();
     },
 
     /**
@@ -117,7 +117,7 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
 
     /**
      * @private
-     * Receives the raw state update snapshot from the server 
+     * Receives the raw state update snapshot from the server
      * and chops it into events for the game to handle
      * @param  {Object}
      */
@@ -125,8 +125,8 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
       //sanitize data
       var msgObjsArr = [];
 
-      /* 
-       * TODO Add actual logic - 
+      /*
+       * TODO Add actual logic -
        * create game process event messages from the server snapshot
        */
       var nextMessageLength = msgObj.data[0];
@@ -144,11 +144,11 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
         // console.log(j, msgObj.data[j]);
         nextMessageLength = msgObj.data[j];
       }
-      
+
       //Push generated events to core process message queue
       if(this.stateUpdateCallback != null){
         for (var i = 0; i < msgObjsArr.length; i++) {
-          this.stateUpdateCallback.call(this.callbackContext, msgObjsArr[i]); 
+          this.stateUpdateCallback.call(this.callbackContext, msgObjsArr[i]);
         };
       }else{
         console.error('Received a server update, '+
@@ -179,13 +179,13 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
       if(this.pingCallback != null){
         var ts = this.lastPingSentAt;
         var ping = Math.abs(msg.timeStamp - ts);
-        //TODO - Add timezone validation, latency will not work 
+        //TODO - Add timezone validation, latency will not work
         //for clients in timezones different from the server
         var timezoneOffset = (new Date()).getTimezoneOffset();
         // console.log(timezoneOffset - (msg.data[1]));
         var latency = Math.abs(msg.timeStamp - msg.data[0]);
         this.pingCallback.call(this.callbackContext, ping, latency);
-      }     
+      }
     },
 
     /**
@@ -259,11 +259,11 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
 
     /**
      * Sends a mouse click message to the server
-     * @param  {int} x X coordinate of the click 
+     * @param  {int} x X coordinate of the click
      * @param  {int} y Y coordinate of the click
      */
     sendClickMessage: function(x, y){
-      var data = new GameMessageEvent(Util.EVENT_INPUT.MOUSE_CLICK, 
+      var data = new GameMessageEvent(Util.EVENT_INPUT.MOUSE_CLICK,
                                                               [x,y]);
       this._sendMessage(data);
     },
