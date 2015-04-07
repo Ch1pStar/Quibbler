@@ -1,17 +1,26 @@
 /**
  * EntityManager - Entity system manager, extends IManager
  */
-define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
+define(['../core/imanager', 'entities/entity', '../util'], function(IManager, Entity, Util){
 
   var EntityManager = IManager.extend({
 
-    init: function(pGame, config){
+    init: function(game, config){
       this._super();
-      this.pGame = pGame;
+      this.game = game;
+      this.pGame = game.game; //best line of my life
       this.tileMap = config.map;
       this.entities = [];
       this.maxEntityFrames = config.entityFrameHistoryLimit;
       this.entityLerpMsec = config.serverTickRate*config.serverUpdateInterval;
+
+
+      this.subscribedEvents = {};
+
+      this.subscribedEvents[Util.EVENT_ACTION.ENTITY_STATE_UPDATE] = this.onEntityStateUpdate;
+      this.subscribedEvents[Util.EVENT_ACTION.PRODUCE] = this.createEntity;
+
+
     },
 
     setPlayingPlayer: function(player){
@@ -39,7 +48,54 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
 
     },
 
-    createEntity: function(data, owner){
+    onEntityStateUpdate: function(e){   
+      this.resetFogMask();
+
+      var lerpPlusLatency = this.entityLerpMsec; //+ this.serverLatency;
+      // var lerpTargetTime = this.pGame.time._started + (e.data[2]*(1000/60));
+      // console.log(lerpTargetTime, this.pGame.time.now);
+      var lerpTargetTime = e.timeStamp;
+      var currEntity = this.entities[e.data[3]];
+      var currEntityAttributesCount = 7;
+      var currEntitySeenByLength = e.data[6];
+      var currEntitySeenByArr = new Array(currEntitySeenByLength);
+      for (var i = 0; i < currEntitySeenByLength; i++) {
+        var currEntitySeenBy = e.data[i+currEntityAttributesCount];
+        currEntitySeenByArr[i] = currEntitySeenBy;
+      };
+
+      var currEntityPathStart = currEntitySeenByLength+currEntityAttributesCount;
+      var currEntityPathLength = e.data[currEntityPathStart];
+      var currEntityPathArr = new Array(currEntityPathLength);
+
+      for (var i = 0; i < currEntityPathLength; i++) {
+        var pathNode = [];
+        var k = ((i+1)*2)+currEntityPathStart;
+        pathNode.push(e.data[k-1]);
+        pathNode.push(e.data[k]);
+        currEntityPathArr[i] = pathNode;
+      };
+      
+      currEntity.frames.push({
+        x:e.data[0],// + (Math.random()*300),
+        y:e.data[1],// + (Math.random()*300),
+        r:e.data[2],
+        seenBy: currEntitySeenByArr,
+        path: currEntityPathArr,
+        t:lerpTargetTime + lerpPlusLatency
+      });
+
+      $('#t-value').text(this.entities[0].frames.length);
+
+      if(currEntity.frames.length >= this.maxEntityFrames) {
+          currEntity.frames.splice(0,1);
+      }
+    },
+
+    createEntity: function(e){
+      var data = e.data;
+      var owner = this.game.playerManager.players[data[5]];
+      console.log(data);
       var config = {
         x: data[0],
         y: data[1],
@@ -54,38 +110,6 @@ define(['../core/imanager', 'entities/entity'], function(IManager, Entity){
     },
 
     process: function(){
-      if(!this.eventQueue.empty()){
-        this.resetFogMask();
-      }
-
-      while(!this.eventQueue.empty()){
-        var e = this.eventQueue.next();
-        var lerpPlusLatency = this.entityLerpMsec; //+ this.serverLatency;
-        // var lerpTargetTime = this.pGame.time._started + (e.data[2]*(1000/60));
-        // console.log(lerpTargetTime, this.pGame.time.now);
-        var lerpTargetTime = e.timeStamp;
-        var currEntity = this.entities[e.data[3]];
-        var currEntitySeenByLength = e.data.length - 4;
-        var currEntitySeenByArr = new Array(currEntitySeenByLength);
-        for (var i = 0; i < currEntitySeenByLength; i++) {
-          var currEntitySeenBy = e.data[i+4];
-          currEntitySeenByArr[i] = currEntitySeenBy;
-        };
-
-        currEntity.frames.push({
-          x:e.data[0],// + (Math.random()*300),
-          y:e.data[1],// + (Math.random()*300),
-          r:e.data[2],
-          seenBy: currEntitySeenByArr,
-          t:lerpTargetTime + lerpPlusLatency
-        });
-
-        $('#t-value').text(this.entities[0].frames.length);
-
-        if(currEntity.frames.length >= this.maxEntityFrames) {
-            currEntity.frames.splice(0,1);
-        }
-      }
 
       for (var i = 0; i < this.entities.length; i++) {
         var currEntity = this.entities[i];

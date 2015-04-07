@@ -6,6 +6,7 @@ define(['../eventqueue', 'gamemessageevent'], function(EventQueue, GameMessageEv
   var IManager = Class.extend({
     init: function(){
         this.eventQueue = new EventQueue(2000);
+        this.subscribedEvents = [];
     },
 
     setEventCallback: function(cb){
@@ -27,6 +28,11 @@ define(['../eventqueue', 'gamemessageevent'], function(EventQueue, GameMessageEv
 
     processRender: function(){
 
+    },
+
+    getSubscribedEvents: function(){
+
+      return this.subscribedEvents;
     }
 
   });

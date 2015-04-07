@@ -33,7 +33,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     }else{
       //Default config options
       this.config = {
-        mapUrl: 'assets/zambiers.json',
+        mapUrl: 'assets/zambies.json',
         clientWindowWidth : 850,
         gameClientType: Util.GAME_CLIENT_TYPE.NETWORK_GAME, // 0 - network game, 1 - single player, 2 - replay
         gameClientSettings: {
@@ -144,14 +144,14 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       this.serverUpdateInterval = data[2];
 
       // var wWidth = $(window).width();
-      var gameWidth = 1300;
+      var gameWidth = 1100;
       // var gameWidth = this.config.clientWindowWidth;
       // if(wWidth < gameWidth){
         // gameWidth = wWidth - 50;
       // }
 
       var wHeight = $(window).height();
-      var gameHeight = wHeight - 250;
+      var gameHeight = wHeight - 350;
 
       this.game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, '', {
         preload: this.caller(this.preload),
@@ -211,6 +211,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
 
       game.stage.backgroundColor = '#2d2d2d';
 
+
+
       this.map = new TileMap(game.add.tilemap('map'));
       this.map.addResources();
 
@@ -238,6 +240,12 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       game.input.keyboard.addCallbacks(this, this.keyboardDownHandler,
                       this.keyboardUpHandler, this.keyboardPressHandler);
 
+
+      var highlightTile = this.game.add.graphics(0,0);
+      highlightTile.lineStyle(1, 0x000000, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings  
+      highlightTile.drawRect(0, 0, 32, 32); // x, y, width, height
+      this.highlightTile = highlightTile;
+
       this.initGameSystems();
     },
 
@@ -248,7 +256,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
         serverUpdateInterval: this.serverUpdateInterval,
         map: this.map
       };
-      this.entityManager = new EntityManager(this.game, entityManagerConfig);
+      this.entityManager = new EntityManager(this, entityManagerConfig);
       this.audioManager = new AudioManager();
       this.playerManager = new PlayerManager();
 
@@ -339,8 +347,13 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      */
     resolveInputState: function(){
       var mousePointer = this.game.input.mousePointer;
+      var xTile = Math.round( (mousePointer.worldX-32/2) /32);
+      var yTile = Math.round( (mousePointer.worldY-32/2) /32);
       //TODO - Add actual UI interaction
-      $('#cursor-tracker').text("X: "+mousePointer.x+" Y: "+mousePointer.y);
+      $('#cursor-tracker').text("X: "+mousePointer.worldX+"("+xTile+") Y: "+mousePointer.worldY+"("+yTile+")");
+
+      this.highlightTile.x = xTile*32;
+      this.highlightTile.y = yTile*32;
 
       if(this.tickCount%this.serverUpdateInterval == 0 && this.inputBuffer.length > 0){
         this.sendUserInput();
@@ -407,24 +420,43 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * @param  {GameMessageEvent}
      */
     executeEvent: function(e){
-      try{
-        var action = e.action;
-        if(action == Util.EVENT_ACTION.ENTITY_STATE_UPDATE){
-          // this.cc++
-          this.entityManager.eventQueue.push(e);
-        }else if(action == Util.EVENT_ACTION.PRODUCE){
-          this.entityManager.createEntity(e.data, this.playerManager.players[e.data[5]]);
-          // this.cc++;
-          // console.log(this.cc);
-        }else if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
 
+      //Add a tick stamp to the event
+      e.tick = this.tickCount;
+      // console.log("----Begin Event(action: %s) Dispatch at %d(%dms)----", e.action, e.tick, Math.round(e.tick*this.tickRate));
+      for(var s in this.gameSystems){
+        var currSystem = this.gameSystems[s];
+        var subbedEvents = currSystem.getSubscribedEvents();
+        var eventCallback = subbedEvents[e.action];
+        if(typeof eventCallback !== 'undefined'){
+          // if(e.canPropagate){
+            eventCallback.apply(currSystem, [e]);
+          // }
         }
-      }catch(e){
-        console.error(e.message);
       }
-      finally{
-        // console.log('Event: %s\n\t%o', e.action, e);
-      }
+
+
+
+
+      //R U EVEN TRYING, HOW BAD IS THIS SHIT I MEAN REALLY
+      // try{
+      //   var action = e.action;
+      //   if(action == Util.EVENT_ACTION.ENTITY_STATE_UPDATE){
+      //     // this.cc++
+      //     this.entityManager.eventQueue.push(e);
+      //   }else if(action == Util.EVENT_ACTION.PRODUCE){
+      //     this.entityManager.createEntity(e.data, this.playerManager.players[e.data[5]]);
+      //     // this.cc++;
+      //     // console.log(this.cc);
+      //   }else if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
+
+      //   }
+      // }catch(e){
+      //   console.error(e.message);
+      // }
+      // finally{
+      //   // console.log('Event: %s\n\t%o', e.action, e);
+      // }
     },
 
     caller: function (fn) {

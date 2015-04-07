@@ -38,9 +38,12 @@ define([], function(){
           x: this.obj.x,
           y: this.obj.y,
           t: this.pGame.time.now,
-          seenBy: []
+          seenBy: [],
+          path: []
         }
       ];
+
+      this.pathGraphics = this.pGame.add.group();
 
 
       // var visionAura = this.pGame.add.graphics(0, 0);  //init rect
@@ -134,25 +137,38 @@ define([], function(){
           r: previousFrame.r
         };
 
-        // this.obj.body.x = this.lerp(targetPos.x, prevPos.x, timePoint);
-        // this.obj.body.y = this.lerp(targetPos.y, prevPos.y, timePoint);
-
         this.obj.x = this.lerp(targetPos.x, prevPos.x, timePoint);
         this.obj.y = this.lerp(targetPos.y, prevPos.y, timePoint);
         this.obj.rotation = this.lerp(targetPos.r, prevPos.r, timePoint);
 
         this.resolveVision(targetFrame);
-
+        this.pathGraphics.removeAll();
+        this.drawPath(targetFrame.path);
       }
 
+    },
+
+    drawPath: function(path){
+      for (var i = 0; i < path.length; i++) {
+        var pathNode = path[i];
+        var nodeX = (pathNode[0]*this.tileWidth)-this.tileWidth/2;
+        var nodeY = (pathNode[1]*this.tileHeight)-this.tileHeight/2;
+
+        var grphx = this.pGame.add.graphics(nodeX, nodeY);  //init rect
+        grphx.lineStyle(1, 0xCCCCCC, 1); // width, color // required settings
+        grphx.beginFill(0xCCCCCC, .2) // color  // required settings
+        grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
+
+        this.pathGraphics.add(grphx);
+      };
     },
 
     resolveVision: function(frame){
       // console.log(frame.seenBy.length, this.manager.playingPlayer.team.id);
       for (var i = 0; i < frame.seenBy.length; i++) {
         if(frame.seenBy[i] == this.manager.playingPlayer.team.id){
-          var column = Math.round(this.obj.x/this.tileWidth);
-          var row = Math.round(this.obj.y/this.tileHeight);
+          var column = Math.round( (this.obj.x-this.tileWidth/2) /this.tileWidth);
+          var row    = Math.round( (this.obj.y) /this.tileHeight);
           try{
             this.fillFogMaskCircle(column, row, this.visionRadius);
           }catch(e){
