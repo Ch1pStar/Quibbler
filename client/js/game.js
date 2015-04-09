@@ -144,14 +144,14 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       this.serverUpdateInterval = data[2];
 
       // var wWidth = $(window).width();
-      var gameWidth = 1100;
+      var gameWidth = 32*38;//tmp
       // var gameWidth = this.config.clientWindowWidth;
       // if(wWidth < gameWidth){
         // gameWidth = wWidth - 50;
       // }
 
       var wHeight = $(window).height();
-      var gameHeight = wHeight - 350;
+      var gameHeight = 32*22;//tmp
 
       this.game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, '', {
         preload: this.caller(this.preload),

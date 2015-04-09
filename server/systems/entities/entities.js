@@ -3,12 +3,11 @@ var Entity = require('./entity.js');
 var consts = require('../../lib/const.js');
 var p2 = require('p2');
 var pf = require('pathfinding');
+var Map = require('../../lib/map.js');
 
-
-function EntitySystem(id, timestep, mapconfig, core) {
+function EntitySystem(id, timestep, mapUrl, core) {
 	this.id = id;
 	this.timestep = timestep;
-	this.mapconfig = mapconfig;
 	this.name = 'entity-system';
 	this.entities = [];
 	this.eId = 0;
@@ -18,11 +17,15 @@ function EntitySystem(id, timestep, mapconfig, core) {
 
 	this.physics = this.createP2PhysicsWorld(true);
 
+	this.addMap(mapUrl);
+
+	// this.addMapBounds();
+
 	this.pathfinder = new pf.AStarFinder({
 		allowDiagonal: true,
 		dontCrossCorners: true
 	});
-	this.pfGrid = new pf.Grid(this.mapconfig.width, this.mapconfig.height);
+	this.pfGrid = new pf.Grid(this.map.width, this.map.height);
 
 	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE_ORDER] = function(e){
 		// e.canPropagate = false;
@@ -35,16 +38,51 @@ function EntitySystem(id, timestep, mapconfig, core) {
 		e.canPropagate = false;
 		console.log("Player %d issued a spawn entity order with type %d at %d,%d", e.data.p.id, e.data.type, e.data.x, e.data.y);
 		this.createEntity(e.data);
+
+		this.addMapBounds();
 	}
 
 }
+
+EntitySystem.prototype.addMap = function(url) {
+	var map = new Map(url);
+	this.map = map;
+};
+
+EntitySystem.prototype.addMapBounds = function() {
+	var bounds = this.map.getBoundsData();
+
+	for (var i = 0; i < bounds.length; i++) {
+		var wallTile = bounds[i];
+
+		var tileBody =  new p2.Body({ position: wallTile, mass: 0 });
+		var tileShape = new p2.Rectangle(this.map.tileWidth, this.map.tileHeight);
+		tileBody.addShape(tileShape);
+		this.physics.addBody(tileBody);
+		
+
+		//Add wall tiles as units
+		// this.createEntity({
+		// 	x: wallTile[0],
+		// 	y: wallTile[1],
+		// 	p: this.entities[0].owner,
+		// });
+
+		// this.pfGrid.setWalkableAt(parseInt(xIndex/tileWidth), parseInt(yIndex/tileHeight), false);
+		// console.log("Pos: %s %s", tileBody.position[0], tileBody.position[1]);
+	};
+
+	this.mapBounds = bounds;
+
+};
 
 EntitySystem.prototype.update = function () {
 	for(var i in this.entities){
 		var currEntity = this.entities[i];
 
-		this.pfGrid.setWalkableAt(Math.round((currEntity.body.position[0]-16)/32), Math.round((currEntity.body.position[1]-16)/32), !currEntity.blocking);
-
+		var entityXBlocking = Math.round((currEntity.body.position[0]-16)/this.map.tileWidth);
+		var entityYBlocking = Math.round((currEntity.body.position[1]-16)/this.map.tileHeight);
+		// this.pfGrid.setWalkableAt(entityXBlocking, entityYBlocking,	!currEntity.blocking);
 
 		currEntity.update();
 	}
@@ -76,8 +114,8 @@ EntitySystem.prototype.createEntity = function (data) {
 		x:x,
 		y:y,
 		r:0,
-		width: 32,
-		height: 32,
+		width: this.map.tileWidth,
+		height: this.map.tileHeight,
 		visionRadius: 3,
 		type:type,
 		owner: data.p,

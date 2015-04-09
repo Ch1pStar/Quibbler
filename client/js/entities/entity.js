@@ -49,7 +49,7 @@ define([], function(){
       // var visionAura = this.pGame.add.graphics(0, 0);  //init rect
       // visionAura.lineStyle(1, this.owner.team.color, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings
       // visionAura.beginFill(this.owner.team.color*.4, 0) // color (0xFFFF0B), alpha (0 -> 1) // required settings
-      // visionAura.drawCircle(this.obj.width/2, this.obj.height/2, this.visionRadius*32); // x, y, width, height
+      // visionAura.drawCircle(this.obj.width/2, this.obj.height/2, (this.visionRadius*32)*2); // x, y, width, height
       // // visionAura.pivot.x = visionAura.width/2;
       // // visionAura.pivot.y = visionAura.height/2;
       // this.obj.addChild(visionAura);

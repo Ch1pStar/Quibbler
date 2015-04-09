@@ -10,7 +10,7 @@ function Player (id, ws, manager) {
 	this.connection = ws;
 	this.manager = manager;
 	this.inputHandler = new InputHandler();
-	this.outgoingMessages = new MessageQueue(20);
+	this.outgoingMessages = new MessageQueue(this.manager.outgoingPlayerMessageLimit);
 	var self = this;
 	this.connected = true;
 	this.connection.on('message', function(data){

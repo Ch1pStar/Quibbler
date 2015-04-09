@@ -7,7 +7,6 @@ main();
 function main() {
   getConfigFile(process.argv[2], function(config) {
       if(config) {
-          console.log(config);
           var c = new Core(config);
       } else {
           console.error("Server cannot start without a configuration file.");

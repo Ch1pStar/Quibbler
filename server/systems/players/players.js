@@ -6,6 +6,7 @@ var consts = require('../../lib/const.js');
 
 function PlayerSystem(config) {
 	this.id = config.id;
+	this.outgoingPlayerMessageLimit = config.outgoingPlayerMessageLimit;
 
 	this.parent = config.parent;
 
@@ -81,14 +82,14 @@ PlayerSystem.prototype.broadcastToPlayers = function (e) {
 };
 
 PlayerSystem.prototype.addAI = function () {
-		var id = this.pId++;
-		var ai = new AIPlayer(id, this);
-		this.players[id] = ai;
+	var id = this.pId++;
+	var ai = new AIPlayer(id, this);
+	this.players[id] = ai;
 
-		var e = new Event(consts.EVENT_ACTION.AI_PLAYER_ADDED, {id:this.id, name:this.name},ai);
-		this.eventBroadcast(e);
+	var e = new Event(consts.EVENT_ACTION.AI_PLAYER_ADDED, {id:this.id, name:this.name},ai);
+	this.eventBroadcast(e);
 
-	  ai.spawnOrder([64,64,10]);
+  	ai.spawnOrder([80, 48, 10]);
 
 };
 

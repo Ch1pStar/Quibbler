@@ -22,6 +22,7 @@ function Core(config){
 	var ps = new PlayerSystem({
 		id:this.sId++,
 		port:config.port,
+		outgoingPlayerMessageLimit: config.outgoingPlayerMessageLimit,
 		parent: this
 	});
 	ps.setEventBroadcast(function(e){
@@ -31,15 +32,8 @@ function Core(config){
 
 	this.systems.push(ps);
 
-	var mapconfig = {
-		tileWidth: 32,
-		tileHeight: 32,
-		width: 22,
-		height: 22
-	};
 
-
-	var es = new EntitySystem(this.sId++, this.tickRate/1000, mapconfig, this);
+	var es = new EntitySystem(this.sId++, this.tickRate/1000, config.mapUrl, this);
 	es.setEventBroadcast(function(e){
 		self.eventQueue.push(e);
 	});
@@ -69,10 +63,6 @@ Core.prototype.handleEventQueue = function () {
 	while(!this.eventQueue.empty()){
 		this.dispatchEvent(this.eventQueue.next());
 	}
-
-	// if(this.tick%this.playersUpdateInterval==0){
-	// 	this.eventQueue.push(new Event(consts.EVENT_OUTGOING.FLUSH_PLAYER_MESSAGES),{},[]);
-	// }
 };
 
 Core.prototype.dispatchEvent = function (e) {
