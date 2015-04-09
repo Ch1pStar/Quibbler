@@ -12,12 +12,12 @@ define([], function(){
       this.manager = config.manager;
       this.tileWidth = this.manager.tileMap.pMap.tileWidth;
       this.tileHeight = this.manager.tileMap.pMap.tileHeight;
-      var centerX = config.x - this.tileWidth/2;
-      var centerY = config.y - this.tileHeight/2;
+      var centerX = config.x;// - this.tileWidth/2;
+      var centerY = config.y;// - this.tileHeight/2;
 
       this.visionRadius =  config.visionRadius;
 
-      var grphx = this.pGame.add.graphics(config.x, config.y);  //init rect
+      var grphx = this.pGame.add.graphics(centerX, centerY);  //init rect
       grphx.lineStyle(1, this.owner.team.color, 1); // width, color // required settings
       grphx.beginFill(this.owner.team.color, .2) // color  // required settings
       grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
@@ -151,8 +151,9 @@ define([], function(){
     drawPath: function(path){
       for (var i = 0; i < path.length; i++) {
         var pathNode = path[i];
-        var nodeX = (pathNode[0]*this.tileWidth)-this.tileWidth/2;
-        var nodeY = (pathNode[1]*this.tileHeight)-this.tileHeight/2;
+
+        var nodeX = (pathNode[0]*32)+32;
+        var nodeY = (pathNode[1]*32)+32;
 
         var grphx = this.pGame.add.graphics(nodeX, nodeY);  //init rect
         grphx.lineStyle(1, 0xCCCCCC, 1); // width, color // required settings

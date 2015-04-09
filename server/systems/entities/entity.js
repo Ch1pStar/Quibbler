@@ -31,6 +31,8 @@ function Entity(config){
   this.path = [];
   this.currPathNode = 0;
   this.pathRadius = 20;
+
+  this.blocking = true;
 }
 
 Entity.prototype.getNetworkAttributes = function () {
@@ -128,7 +130,6 @@ Entity.prototype.update = function () {
   if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
     this.stateChanged = true;
   }
-
   this.computePathForNextCommand();
 
   var target = this.getCurrentPathTarget();
@@ -139,11 +140,22 @@ Entity.prototype.update = function () {
     var tarY = target[1]*32;
 
 
-    var speed = 100;
-    var angle = Math.atan2(tarY - this.body.position[1], tarX - this.body.position[0]);
-    this.body.rotation = angle;
-    this.body.force[0] = Math.cos(angle) * speed;
-    this.body.force[1] = Math.sin(angle) * speed;
+
+    if(this.distance(this.path[this.path.length-1])==0){
+      this.body.force = [0,0];
+      this.body.velocity = [0,0];
+      // console.log(this.body.position);
+      // this.path = [];
+    }else{
+      this.body.wakeUp();
+      var speed = 100;
+      var angle = Math.atan2(tarY - this.body.position[1], tarX - this.body.position[0]);
+      this.body.rotation = angle;
+      this.body.force[0] = Math.cos(angle) * speed;
+      this.body.force[1] = Math.sin(angle) * speed;
+
+    }
+
   }
 
   this.seenBy = [];

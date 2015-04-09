@@ -88,7 +88,7 @@ PlayerSystem.prototype.addAI = function () {
 		var e = new Event(consts.EVENT_ACTION.AI_PLAYER_ADDED, {id:this.id, name:this.name},ai);
 		this.eventBroadcast(e);
 
-	  ai.spawnOrder([308,308,10]);
+	  ai.spawnOrder([64,64,10]);
 
 };
 

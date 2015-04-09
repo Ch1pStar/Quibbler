@@ -190,8 +190,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
 
 
       this.game.load.image('bg', 'assets/bg_tile.png');
-      // this.game.load.image('road', 'assets/road_pattern.png');
-      // this.game.load.image('road_corners', 'assets/road_corners.png');
+      this.game.load.image('road', 'assets/road_pattern.png');
+      this.game.load.image('road_corners', 'assets/road_corners.png');
 
 
       this.game.load.image('simple_tile', 'assets/simple_tile.png');
@@ -216,12 +216,6 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       this.map = new TileMap(game.add.tilemap('map'));
       this.map.addResources();
 
-      var  layer = this.map.pMap.createLayer('Background');
-      layer.resizeWorld();
-
-      // var walls = this.map.pMap.createLayer('Road');
-      // walls.resizeWorld();
-
 
       //  Set the tiles for collision.
       //  Do this BEFORE generating the p2 bodies below.
@@ -242,7 +236,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
 
 
       var highlightTile = this.game.add.graphics(0,0);
-      highlightTile.lineStyle(1, 0x000000, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings  
+      highlightTile.lineStyle(1, 0x000000, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings
       highlightTile.drawRect(0, 0, 32, 32); // x, y, width, height
       this.highlightTile = highlightTile;
 

@@ -21,7 +21,64 @@
          "width":38,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "height":22,
+         "name":"RoadWalls",
+         "objects":[
+                {
+                 "height":0,
+                 "id":4,
+                 "name":"",
+                 "polyline":[
+                        {
+                         "x":0,
+                         "y":0
+                        }, 
+                        {
+                         "x":0,
+                         "y":216.666666666667
+                        }, 
+                        {
+                         "x":224.666666666667,
+                         "y":215.333333333333
+                        }, 
+                        {
+                         "x":224,
+                         "y":369.333333333333
+                        }, 
+                        {
+                         "x":531.333333333333,
+                         "y":369.333333333333
+                        }, 
+                        {
+                         "x":532,
+                         "y":-7.33333333333334
+                        }, 
+                        {
+                         "x":-1.33333333333334,
+                         "y":0.666666666666664
+                        }],
+                 "properties":
+                    {
+
+                    },
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":62.6666666666667,
+                 "y":42.6666666666667
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "width":38,
+         "x":0,
+         "y":0
         }],
+ "nextobjectid":5,
  "orientation":"orthogonal",
  "properties":
     {

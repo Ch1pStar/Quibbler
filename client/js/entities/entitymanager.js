@@ -48,7 +48,7 @@ define(['../core/imanager', 'entities/entity', '../util'], function(IManager, En
 
     },
 
-    onEntityStateUpdate: function(e){   
+    onEntityStateUpdate: function(e){
       this.resetFogMask();
 
       var lerpPlusLatency = this.entityLerpMsec; //+ this.serverLatency;
@@ -66,7 +66,7 @@ define(['../core/imanager', 'entities/entity', '../util'], function(IManager, En
 
       var currEntityPathStart = currEntitySeenByLength+currEntityAttributesCount;
       var currEntityPathLength = e.data[currEntityPathStart];
-      var currEntityPathArr = new Array(currEntityPathLength);
+      var currEntityPathArr = new Array(currEntityPathLength || 0);
 
       for (var i = 0; i < currEntityPathLength; i++) {
         var pathNode = [];
@@ -75,7 +75,7 @@ define(['../core/imanager', 'entities/entity', '../util'], function(IManager, En
         pathNode.push(e.data[k]);
         currEntityPathArr[i] = pathNode;
       };
-      
+
       currEntity.frames.push({
         x:e.data[0],// + (Math.random()*300),
         y:e.data[1],// + (Math.random()*300),

@@ -42,6 +42,10 @@ function EntitySystem(id, timestep, mapconfig, core) {
 EntitySystem.prototype.update = function () {
 	for(var i in this.entities){
 		var currEntity = this.entities[i];
+
+		this.pfGrid.setWalkableAt(Math.round((currEntity.body.position[0]-16)/32), Math.round((currEntity.body.position[1]-16)/32), !currEntity.blocking);
+
+
 		currEntity.update();
 	}
 
@@ -54,6 +58,8 @@ EntitySystem.prototype.createP2PhysicsWorld = function (profiling) {
 		gravity: [0, 0],
 	  broadphase: new p2.SAPBroadphase() // Broadphase algorithm
 	});
+
+	world.sleepMode = p2.World.BODY_SLEEPING;
 
   // world.solveConstraints = false;
   // world.applyGravity = false;
