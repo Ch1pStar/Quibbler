@@ -1,0 +1,7 @@
+{
+  "tickRate": 16.666666666666668,
+  "updateInteval": 3,
+  "port": 3001,
+  "mapUrl": "/home/ned/Projects/Quibbler/server/config/zambies.json",
+  "outgoingPlayerMessageLimit": 400
+}
