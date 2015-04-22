@@ -25,25 +25,24 @@ Map.prototype.getBoundsData = function() {
   var collisionIndex = this.layers.length-1;
   var collisionLayer = this.layers[collisionIndex];
   var data = collisionLayer.data;
-  var xIndex = this.tileWidth/2;
-  var yIndex = this.tileHeight/2;
+  var xIndex = 0, yIndex = 0;
   var boundsData = [];
+
   for (var i = 0; i < data.length; i++) {
+    
     var tile = data[i];
     if(tile!=0){
-      // console.log("Found a tile at: %s(%s) %s(%s)", xIndex,xIndex/this.tileWidth, yIndex, yIndex/this.tileHeight);
       boundsData.push([xIndex, yIndex]);
     }
-    if(i>0 && i%this.width==0){
-      yIndex += this.tileHeight;
-      xIndex = this.tileWidth+this.tileWidth/2;
+    
+    if(xIndex==(this.width-1)){
+      yIndex++;
+      xIndex = 0;
     }else{
-      xIndex += this.tileWidth;
+      xIndex++;
     }
-  
   };
   return boundsData;
-
 };
 
 module.exports = Map;

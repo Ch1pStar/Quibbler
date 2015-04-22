@@ -1,7 +1,7 @@
 /**
  * EntityManager - Entity system manager, extends IManager
  */
-define(['../core/imanager', 'entities/entity', '../util'], function(IManager, Entity, Util){
+define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-browser.min'], function(IManager, Entity, Util, pf){
 
   var EntityManager = IManager.extend({
 
@@ -20,6 +20,19 @@ define(['../core/imanager', 'entities/entity', '../util'], function(IManager, En
       this.subscribedEvents[Util.EVENT_ACTION.ENTITY_STATE_UPDATE] = this.onEntityStateUpdate;
       this.subscribedEvents[Util.EVENT_ACTION.PRODUCE] = this.createEntity;
 
+      this.pathfinder = new pf.AStarFinder({
+        allowDiagonal: true,
+        dontCrossCorners: true
+      });
+      this.pfGrid = new pf.Grid(this.tileMap.pMap.width, this.tileMap.pMap.height);
+   
+      var data = this.tileMap.walls.getTiles(0,0,this.tileMap.pMap.widthInPixels, this.tileMap.pMap.heightInPixels);
+      for(var i in data){
+        var tile = data[i];
+        if(tile.index != -1){
+          this.pfGrid.setWalkableAt(tile.x,tile.y, false);       
+        }
+      }
 
     },
 
@@ -75,13 +88,28 @@ define(['../core/imanager', 'entities/entity', '../util'], function(IManager, En
         pathNode.push(e.data[k]);
         currEntityPathArr[i] = pathNode;
       };
+      
+      var currEntityLocalPath = [];
+      if(currEntityPathArr.length>0){
+
+      
+        var tarNode = currEntityPathArr[currEntityPathArr.length-1];
+
+        var grid = this.pfGrid.clone();
+        var pf = this.pathfinder;
+      
+        var srcXTile = Math.round((e.data[0]-32/2)/32);
+        var srcYTile = Math.round((e.data[1]-32/2)/32);
+
+        currEntityLocalPath = pf.findPath(srcXTile, srcYTile, tarNode[0], tarNode[1], grid);
+      }
 
       currEntity.frames.push({
         x:e.data[0],// + (Math.random()*300),
         y:e.data[1],// + (Math.random()*300),
         r:e.data[2],
         seenBy: currEntitySeenByArr,
-        path: currEntityPathArr,
+        path: currEntityLocalPath,
         t:lerpTargetTime + lerpPlusLatency
       });
 

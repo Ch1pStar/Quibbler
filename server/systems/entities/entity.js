@@ -6,7 +6,7 @@ function Entity(config){
 
   var body = new Body({
     position: [config.x, config.y],
-    mass: 1
+    mass: config.mass
     // angle: config.r
   });
 
@@ -29,11 +29,104 @@ function Entity(config){
   this.stateChanged = false;
   this.moveOrders = [];
   this.path = [];
-  this.currPathNode = 0;
-  this.pathRadius = 20;
+  this.nextMoveOrder = null;
+  this.currPathNodeIndex = 0;
+  this.pathRadius = 5;
 
   this.blocking = true;
 }
+
+Entity.prototype.addMoveCommand = function (data) {
+  this.moveOrders[0] = data;
+};
+
+Entity.prototype.computeMoveNextCommand = function() {
+  if(this.moveOrders.length>0 && this.nextMoveOrder == null){
+    this.nextMoveOrder = this.moveOrders[0];
+    this.moveOrders = [];
+  }
+};
+
+Entity.prototype.computePathForNextCommand = function () {
+
+    if(this.nextMoveOrder != null){
+      var data = this.nextMoveOrder;
+
+      var grid = this.manager.pfGrid.clone();
+      var pf = this.manager.pathfinder;
+    
+      var tarXTile = Math.round((data[0]-32/2)/32);
+      var tarYTile = Math.round((data[1]-32/2)/32);
+
+      var srcXTile = Math.round((this.body.position[0]-32/2)/32);
+      var srcYTile = Math.round((this.body.position[1]-32/2)/32);
+
+      var res = pf.findPath(srcXTile, srcYTile, tarXTile, tarYTile, grid);
+
+      this.path = res;
+    }
+
+};
+
+Entity.prototype.getCurrentPathTarget = function () {
+  var target = undefined;
+
+  if (this.path.length>0) {
+    if (this.currPathNodeIndex >= this.path.length) {
+      this.currPathNodeIndex = this.path.length - 1;
+    }
+
+    target = this.path[this.currPathNodeIndex];
+
+    if (this.distance(target) <= this.pathRadius) {
+      this.currPathNodeIndex ++;
+
+      //Path destination is reached
+      if (this.currPathNodeIndex >= this.path.length) {
+        this.currPathNodeIndex = 0;
+        this.path = [];
+        this.body.force = [0,0];
+        this.body.velocity = [0,0];
+        this.nextMoveOrder = null;
+      }
+    }
+  }
+
+  return target;
+};
+
+Entity.prototype.update = function () {
+  if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
+    this.stateChanged = true;
+  }
+
+  this.computeMoveNextCommand();
+  this.computePathForNextCommand();
+
+  var target = this.getCurrentPathTarget();
+
+  if(typeof target !== 'undefined'){
+    var tarX = target[0]*32;
+    var tarY = target[1]*32;
+
+      this.body.wakeUp();
+      var speed = 100;
+      var angle = Math.atan2(tarY - this.body.position[1], tarX - this.body.position[0]);
+      this.body.rotation = angle;
+      this.body.force[0] = Math.cos(angle) * speed;
+      this.body.force[1] = Math.sin(angle) * speed;
+
+  }
+
+  this.seenBy = [];
+  for(var p in this.manager.core.ps.players){
+    //tmp
+    if(!this.manager.core.ps.players[p].isAI){
+      this.seenBy.push(this.manager.core.ps.players[p].id);
+    }
+  }
+};
+
 
 Entity.prototype.getNetworkAttributes = function () {
   var res = [
@@ -53,13 +146,13 @@ Entity.prototype.getNetworkAttributes = function () {
   };
 
   if(this.path.length>0){
-    res.push(this.path.length);
-  }
-  for (var j = 0; j < this.path.length; j++) {
-    for (var i = 0; i < this.path[j].length; i++) {
-      res.push(this.path[j][i]);
+    res.push(1);
+
+    var lastPathIndex = this.path.length-1;
+    for (var i = 0; i < this.path[lastPathIndex].length; i++) {
+      res.push(this.path[lastPathIndex][i]);
     }
-  };
+  }
   res.unshift(res.length);
   return res;
 };
@@ -77,100 +170,13 @@ Entity.prototype.getInitialNetworkAttributes = function () {
   return res;
 };
 
-Entity.prototype.addMoveCommand = function (data) {
-  this.moveOrders[0] = data;
-};
-
-Entity.prototype.computePathForNextCommand = function () {
-    if(this.moveOrders.length>0){
-      var data = this.moveOrders[0];
-
-      var grid = this.manager.pfGrid.clone();
-      var pf = this.manager.pathfinder;
-
-
-      var tarXTile = Math.round( (data[0]-32/2) /32);
-      var tarYTile = Math.round( (data[1]-32/2) /32);
-
-      var srcXTile = Math.round( (this.body.position[0]-32/2) /32);
-      var srcYTile = Math.round( (this.body.position[1]-32/2) /32);
-
-      var res = pf.findPath(srcXTile, srcYTile, tarXTile, tarYTile, grid);
-
-      this.path = res;
-      // console.log(srcXTile,srcYTile);
-      // console.log(tarXTile, tarYTile);
-      // console.log(res);
-    }
-};
-
-Entity.prototype.getCurrentPathTarget = function () {
-  var target = undefined;
-
-  if (this.path.length>0) {
-    if (this.currPathNode >= this.path.length) {
-      this.currPathNode = this.path.length - 1;
-    }
-
-    target = this.path[this.currPathNode];
-
-    if (this.distance(target) <= this.pathRadius) {
-      this.currPathNode += 1;
-
-      if (this.currPathNode >= this.path.length) {
-        this.currPathNode = this.path.length - 1;
-      }
-    }
-  }
-
-  return target;
-};
-
-Entity.prototype.update = function () {
-  if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
-    this.stateChanged = true;
-  }
-  this.computePathForNextCommand();
-
-  var target = this.getCurrentPathTarget();
-
-
-  if(typeof target !== 'undefined'){
-    var tarX = target[0]*32;
-    var tarY = target[1]*32;
-
-
-
-    if(this.distance(this.path[this.path.length-1])==0){
-      this.body.force = [0,0];
-      this.body.velocity = [0,0];
-      // console.log(this.body.position);
-      // this.path = [];
-    }else{
-      this.body.wakeUp();
-      var speed = 100;
-      var angle = Math.atan2(tarY - this.body.position[1], tarX - this.body.position[0]);
-      this.body.rotation = angle;
-      this.body.force[0] = Math.cos(angle) * speed;
-      this.body.force[1] = Math.sin(angle) * speed;
-
-    }
-
-  }
-
-  this.seenBy = [];
-  for(var p in this.manager.core.ps.players){
-    //tmp
-    if(!this.manager.core.ps.players[p].isAI){
-      this.seenBy.push(this.manager.core.ps.players[p].id);
-    }
-  }
-};
-
 Entity.prototype.distance = function (target) {
-  var srcXTile = Math.round( (this.body.position[0]-32/2) /32);
-  var srcYTile = Math.round( (this.body.position[1]-32/2) /32);
+  var srcXTile = Math.round(this.body.position[0]);
+  var srcYTile = Math.round(this.body.position[1]);
+  var tarXTile = (target[0]*32)+32/2;
+  var tarYTile = (target[1]*32)+32/2;
 
-  return Math.sqrt((srcXTile - target[0]) * (srcXTile - target[0])  + (srcYTile - target[1]) * (srcYTile - target[1]));
+
+  return Math.sqrt((srcXTile - tarXTile) * (srcXTile - tarXTile)  + (srcYTile - tarYTile) * (srcYTile - tarYTile));
 };
 module.exports = Entity;

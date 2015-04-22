@@ -22,6 +22,9 @@ define([], function(){
       grphx.beginFill(this.owner.team.color, .2) // color  // required settings
       grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
 
+      grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 1);
+      grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 20);
+
       // this.t = grphx;
       this.obj = grphx;
       // this.obj = this.pGame.add.sprite(centerX, centerY, 'simple_tile');
@@ -142,21 +145,21 @@ define([], function(){
         this.obj.rotation = this.lerp(targetPos.r, prevPos.r, timePoint);
 
         this.resolveVision(targetFrame);
-        this.pathGraphics.removeAll();
         this.drawPath(targetFrame.path);
       }
 
     },
 
     drawPath: function(path){
+      this.pathGraphics.removeAll();
       for (var i = 0; i < path.length; i++) {
         var pathNode = path[i];
 
-        var nodeX = (pathNode[0]*32)+32;
-        var nodeY = (pathNode[1]*32)+32;
+        var nodeX = (pathNode[0]*32);
+        var nodeY = (pathNode[1]*32);
 
         var grphx = this.pGame.add.graphics(nodeX, nodeY);  //init rect
-        grphx.lineStyle(1, 0xCCCCCC, 1); // width, color // required settings
+        grphx.lineStyle(1, 0x777777, 1); // width, color // required settings
         grphx.beginFill(0xCCCCCC, .2) // color  // required settings
         grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
 
@@ -173,7 +176,7 @@ define([], function(){
           try{
             this.fillFogMaskCircle(column, row, this.visionRadius);
           }catch(e){
-            // console.log(e);
+            console.log(e);
           }
           this.show();
           break;
@@ -235,10 +238,14 @@ define([], function(){
       var deltaerr = Math.abs(deltay / deltax);
       var y = y0;
       for(var x = x0; x <= x1; x++){
-        this.manager.fogMask[x][y] = 1;
+        if(x>-1 && y>-1 && x<this.manager.fogMask.length-1){
+          this.manager.fogMask[x][y] = 1;
+        }
         error = error + deltaerr;
         while(error >= 0.5){
-          this.manager.fogMask[x][y] = 1;
+          if(x>-1 && y>-1 && x<this.manager.fogMask.length-1){
+            this.manager.fogMask[x][y] = 1;
+          }
           y = y + (y1 - y0)?(y1 - y0)<0?-1:1:0;
           error = error - 1.0;
         }

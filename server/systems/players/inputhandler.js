@@ -13,8 +13,8 @@ InputHandler.prototype.parseInputBuffer = function (buffer) {
       var data = [buffer[j++]];
     }
   };
-  console.log(buffer);
-  // console.log(data);
+  // console.log(buffer);
+  console.log(data);
 };
 
 

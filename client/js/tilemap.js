@@ -12,9 +12,10 @@ define([], function(){
       var  layer = this.pMap.createLayer('Background');
       layer.resizeWorld();
 
-      var walls = this.pMap.createLayer('Road');
-      walls.resizeWorld();
+      var road = this.pMap.createLayer('Road');
 
+      var walls = this.pMap.createLayer('RoadWalls');
+      this.walls = walls;
     },
 
     addResources: function(){

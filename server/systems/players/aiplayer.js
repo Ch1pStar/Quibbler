@@ -24,8 +24,8 @@ AIPlayer.prototype.listenStdin = function () {
         e = new Event(consts.EVENT_PLAYER_COMMAND.UNIT_MOVE_ORDER, {}, {
           p: self,
           eId: parseInt(data[1]),
-          x: parseInt(data[2]),
-          y: parseInt(data[3])
+          x: parseInt((data[2]*32)+16),
+          y: parseInt((data[3]*32)+16)
         });
         self.manager.eventBroadcast(e);
       }else if(data[0] == 'spawn'){

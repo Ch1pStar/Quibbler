@@ -19,7 +19,6 @@ function EntitySystem(id, timestep, mapUrl, core) {
 
 	this.addMap(mapUrl);
 
-	// this.addMapBounds();
 
 	this.pathfinder = new pf.AStarFinder({
 		allowDiagonal: true,
@@ -37,11 +36,14 @@ function EntitySystem(id, timestep, mapUrl, core) {
 	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_SPAWN] = function(e){
 		e.canPropagate = false;
 		console.log("Player %d issued a spawn entity order with type %d at %d,%d", e.data.p.id, e.data.type, e.data.x, e.data.y);
-		this.createEntity(e.data);
+		var data = e.data;
+		data.mass = 1;
+		this.createEntity(data);
 
-		this.addMapBounds();
+		// this.addMapBounds();
 	}
 
+	this.addMapBounds();
 }
 
 EntitySystem.prototype.addMap = function(url) {
@@ -51,11 +53,16 @@ EntitySystem.prototype.addMap = function(url) {
 
 EntitySystem.prototype.addMapBounds = function() {
 	var bounds = this.map.getBoundsData();
-
 	for (var i = 0; i < bounds.length; i++) {
 		var wallTile = bounds[i];
 
-		var tileBody =  new p2.Body({ position: wallTile, mass: 0 });
+		var tileBody =  new p2.Body({ 
+			position: [
+				(wallTile[0]*32)+16,
+				(wallTile[1]*32)+16
+			], 
+			mass: 0 
+		});
 		var tileShape = new p2.Rectangle(this.map.tileWidth, this.map.tileHeight);
 		tileBody.addShape(tileShape);
 		this.physics.addBody(tileBody);
@@ -63,12 +70,14 @@ EntitySystem.prototype.addMapBounds = function() {
 
 		//Add wall tiles as units
 		// this.createEntity({
-		// 	x: wallTile[0],
-		// 	y: wallTile[1],
+		// 	x: (wallTile[0]*32)+16,
+		// 	y: (wallTile[1]*32)+16,
 		// 	p: this.entities[0].owner,
+		// 	mass:0
 		// });
 
-		// this.pfGrid.setWalkableAt(parseInt(xIndex/tileWidth), parseInt(yIndex/tileHeight), false);
+
+		this.pfGrid.setWalkableAt(wallTile[0], wallTile[1], false);
 		// console.log("Pos: %s %s", tileBody.position[0], tileBody.position[1]);
 	};
 
@@ -116,9 +125,10 @@ EntitySystem.prototype.createEntity = function (data) {
 		r:0,
 		width: this.map.tileWidth,
 		height: this.map.tileHeight,
-		visionRadius: 3,
+		visionRadius: 2,
 		type:type,
 		owner: data.p,
+		mass: data.mass,
 		manager: this
 	});
 	this.entities[id] = entity;

@@ -17,7 +17,8 @@ exports.EVENT_INPUT = Object.freeze({
   MOUSE_CLICK: 10,
   KEYBOARD_KEYPRESS: 11,
   MOUSE_DRAG_BEGIN: 12,
-  MOUSE_DRAG_END: 13
+  MOUSE_DRAG_END: 13,
+  UNIT_SPAWN: 14
 });
 
 exports.EVENT_OUTGOING = Object.freeze({

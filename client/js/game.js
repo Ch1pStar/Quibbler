@@ -349,14 +349,17 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       this.highlightTile.x = xTile*32;
       this.highlightTile.y = yTile*32;
 
-      if(this.tickCount%this.serverUpdateInterval == 0 && this.inputBuffer.length > 0){
+      // console.log(this.serverUpdateInterval);
+      if(this.tickCount%this.serverUpdateInterval == 0){
         this.sendUserInput();
       }
     },
 
     sendUserInput: function(){
-      this.client.sendInputBuffer(this.inputBuffer);
-      this.inputBuffer = [];
+      if(this.inputBuffer.length > 0){
+        this.client.sendInputBuffer(this.inputBuffer);
+        this.inputBuffer = [];
+      }
     },
 
     /**
@@ -364,7 +367,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * @param  {Phaser.MousePointer} pointer The MousePointer object
      */
     mouseClickHandler: function(pointer){
-      console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
+      console.log(pointer);
+      // console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
       var e = new GameMessageEvent(Util.EVENT_INPUT.MOUSE_CLICK, [pointer.x, pointer.y]);
       this.inputBuffer.push(e);
     },
@@ -382,8 +386,14 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * @param  {Phaser.KeyboardEvent} e
      */
     keyboardUpHandler: function(e){
-      var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);
-      this.inputBuffer.push(eventMessage);
+      console.log(e);
+      if(e.keyCode == 83){
+        var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.UNIT_SPAWN, [this.highlightTile.x/32, this.highlightTile.y/32]);
+        this.inputBuffer.push(eventMessage);
+      }else{
+        var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);
+        this.inputBuffer.push(eventMessage);
+      }
     },
 
     keyboardPressHandler: function(keyAsChar){
