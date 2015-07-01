@@ -14,7 +14,10 @@ function StatSystem(id) {
 
 	this.subscribedEvents[consts.EVENT_ACTION.AI_PLAYER_ADDED] = this.defaultEventHandler;
 
-	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE_ORDER] = this.defaultEventHandler;
+	// this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE] = this.defaultEventHandler;
+	// this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_ATTACK] = this.defaultEventHandler;
+	// this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_ABILITY] = this.defaultEventHandler;
+
 
 	var self = this;
 }

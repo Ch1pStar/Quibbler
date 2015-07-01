@@ -1,6 +1,12 @@
 var Body = require('p2').Body;
 var Rectangle = require('p2').Rectangle;
+var Circle = require('p2').Circle;
 
+
+//Components
+var GroundMovement = require('./components/groundmovement');
+var MeleeAttack = require('./abilities/meleeattack');
+var TrainUnit = require('./abilities/trainunit');
 
 function Entity(config){
 
@@ -10,114 +16,93 @@ function Entity(config){
     // angle: config.r
   });
 
-  var shape = new Rectangle(config.width, config.height);
+  var shape = new Circle(config.width/2);
 
   body.addShape(shape);
 
   this.body = body;
 
+  this.id = config.id
+  // this.id = this.body.id;
 
-  this.id = config.id;
   this.manager = config.manager;
   // this.x = config.x;
   // this.y = config.y;
   // this.r = config.r;
-  this.visionRadius = config.visionRadius;
-  this.type = config.type;
+
+
   this.owner = config.owner;
+  this.visionRadius = config.visionRadius;
   this.seenBy = [];
-  this.stateChanged = false;
-  this.moveOrders = [];
-  this.path = [];
-  this.nextMoveOrder = null;
-  this.currPathNodeIndex = 0;
-  this.pathRadius = 5;
+  this.controlledBy = [this.owner.id];
+
+  //attack is always first ability
+  this.abilities = [];
+  this.abilityQueue = [];
+  
+  this.type = config.type;  
 
   this.blocking = true;
+
+  this.stateChanged = false;
+
+  this.movement = new GroundMovement(this);
+
+
 }
 
+Entity.prototype.addAbility = function(name) {
+  if(name=="train-unit"){
+    this.abilities.push(new TrainUnit(this));
+  }
+  if(name=="melee-attack"){
+    this.abilities.push(new MeleeAttack(this));
+  }
+};
+
+Entity.prototype.getAbilities = function() {
+  var res = [];
+  for (var i = 0; i < this.abilities.length; i++) {
+    res[i] = this.abilities[i].name;
+  };
+  return res;
+};
+
 Entity.prototype.addMoveCommand = function (data) {
-  this.moveOrders[0] = data;
+  console.log("\t*** Adding move command to entity %d ***", this.id);
+  this.movement.moveOrders[0] = data;
 };
 
-Entity.prototype.computeMoveNextCommand = function() {
-  if(this.moveOrders.length>0 && this.nextMoveOrder == null){
-    this.nextMoveOrder = this.moveOrders[0];
-    this.moveOrders = [];
-  }
+Entity.prototype.addAbilityCommand = function (data) {
+  this.abilityQueue[0] = data;
 };
 
-Entity.prototype.computePathForNextCommand = function () {
-
-    if(this.nextMoveOrder != null){
-      var data = this.nextMoveOrder;
-
-      var grid = this.manager.pfGrid.clone();
-      var pf = this.manager.pathfinder;
-    
-      var tarXTile = Math.round((data[0]-32/2)/32);
-      var tarYTile = Math.round((data[1]-32/2)/32);
-
-      var srcXTile = Math.round((this.body.position[0]-32/2)/32);
-      var srcYTile = Math.round((this.body.position[1]-32/2)/32);
-
-      var res = pf.findPath(srcXTile, srcYTile, tarXTile, tarYTile, grid);
-
-      this.path = res;
-    }
-
-};
-
-Entity.prototype.getCurrentPathTarget = function () {
-  var target = undefined;
-
-  if (this.path.length>0) {
-    if (this.currPathNodeIndex >= this.path.length) {
-      this.currPathNodeIndex = this.path.length - 1;
-    }
-
-    target = this.path[this.currPathNodeIndex];
-
-    if (this.distance(target) <= this.pathRadius) {
-      this.currPathNodeIndex ++;
-
-      //Path destination is reached
-      if (this.currPathNodeIndex >= this.path.length) {
-        this.currPathNodeIndex = 0;
-        this.path = [];
-        this.body.force = [0,0];
-        this.body.velocity = [0,0];
-        this.nextMoveOrder = null;
-      }
-    }
-  }
-
-  return target;
-};
 
 Entity.prototype.update = function () {
-  if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
+  // if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
     this.stateChanged = true;
+  // }
+
+  //movement
+  this.movement.process();
+  
+  //abilities
+  var abilityData;
+  while(typeof(abilityData=this.abilityQueue.shift())!='undefined'){
+    var ability = this.abilities[abilityData[2]];
+    ability.run(abilityData);
   }
+  
 
-  this.computeMoveNextCommand();
-  this.computePathForNextCommand();
+  //vision
+  this.resolveSeenBy();
+};
 
-  var target = this.getCurrentPathTarget();
 
-  if(typeof target !== 'undefined'){
-    var tarX = target[0]*32;
-    var tarY = target[1]*32;
 
-      this.body.wakeUp();
-      var speed = 100;
-      var angle = Math.atan2(tarY - this.body.position[1], tarX - this.body.position[0]);
-      this.body.rotation = angle;
-      this.body.force[0] = Math.cos(angle) * speed;
-      this.body.force[1] = Math.sin(angle) * speed;
 
-  }
 
+Entity.prototype.resolveSeenBy = function() {
   this.seenBy = [];
   for(var p in this.manager.core.ps.players){
     //tmp
@@ -126,7 +111,6 @@ Entity.prototype.update = function () {
     }
   }
 };
-
 
 Entity.prototype.getNetworkAttributes = function () {
   var res = [
@@ -145,12 +129,12 @@ Entity.prototype.getNetworkAttributes = function () {
     res.push(this.seenBy[j]);
   };
 
-  if(this.path.length>0){
+  if(this.movement.path.length>0){
     res.push(1);
 
-    var lastPathIndex = this.path.length-1;
-    for (var i = 0; i < this.path[lastPathIndex].length; i++) {
-      res.push(this.path[lastPathIndex][i]);
+    var lastPathIndex = this.movement.path.length-1;
+    for (var i = 0; i < this.movement.path[lastPathIndex].length; i++) {
+      res.push(this.movement.path[lastPathIndex][i]);
     }
   }
   res.unshift(res.length);
@@ -170,13 +154,5 @@ Entity.prototype.getInitialNetworkAttributes = function () {
   return res;
 };
 
-Entity.prototype.distance = function (target) {
-  var srcXTile = Math.round(this.body.position[0]);
-  var srcYTile = Math.round(this.body.position[1]);
-  var tarXTile = (target[0]*32)+32/2;
-  var tarYTile = (target[1]*32)+32/2;
 
-
-  return Math.sqrt((srcXTile - tarXTile) * (srcXTile - tarXTile)  + (srcYTile - tarYTile) * (srcYTile - tarYTile));
-};
 module.exports = Entity;

@@ -15,8 +15,13 @@ define({
     MOUSE_CLICK: 10,
     KEYBOARD_KEYPRESS: 11,
     MOUSE_DRAG_BEGIN: 12,
-    MOUSE_DRAG_END: 13,
-    UNIT_SPAWN: 14
+    MOUSE_DRAG_END: 13
+  }),
+
+  EVENT_PLAYER_COMMAND: Object.freeze({
+    UNIT_MOVE_ORDER: 30,
+    UNIT_ATTACK_ORDER: 31,
+    UNIT_SPAWN_ORDER: 32
   }),
 
 
@@ -24,5 +29,10 @@ define({
   	NETWORK: 0,
   	SINGLE_PLAYER: 1,
   	REPLAY: 2,
+  }),
+
+  EVENT_ENTITY_ACTION: Object.freeze({
+    SPAWN: 40,
+    MOVE: 41
   })
 });

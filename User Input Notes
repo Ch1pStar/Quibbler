@@ -1,0 +1,22 @@
+User Input Notes
+
+  
+  Send Raw Input    |    Send Commands
+
+1.  Saves traffic        1. No need for onclick detection
+
+2. Ability usage would
+   be send as commands(
+   Including hotkeys)
+
+3. Adds delay between
+   user input and server
+   dection of the input
+   (not result of input)
+
+
+Sending commands:
+  -Send selection command(array of selected unit ids)
+  -Send move command(world point, affects existing selection of units)
+  -Send attack command(world point or unit, affects existing selection of units)
+  -Send ability command(id and target id/target world point, building produce orders are considered abilities)

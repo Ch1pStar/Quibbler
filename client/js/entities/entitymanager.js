@@ -13,7 +13,8 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
       this.entities = [];
       this.maxEntityFrames = config.entityFrameHistoryLimit;
       this.entityLerpMsec = config.serverTickRate*config.serverUpdateInterval;
-
+      this.serverTickRate = config.serverTickRate;
+      this.entityLerpTick = config.serverUpdateInterval;
 
       this.subscribedEvents = {};
 
@@ -110,7 +111,8 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
         r:e.data[2],
         seenBy: currEntitySeenByArr,
         path: currEntityLocalPath,
-        t:lerpTargetTime + lerpPlusLatency
+        t:lerpTargetTime + lerpPlusLatency,
+        tick: e.tick + this.entityLerpTick
       });
 
       $('#t-value').text(this.entities[0].frames.length);

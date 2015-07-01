@@ -1,8 +1,8 @@
-var Event = require('../../lib/event.js');
-var Player = require('./player.js');
-var WebSocketServer = require('ws').Server;
-var AIPlayer = require('./aiplayer.js');
-var consts = require('../../lib/const.js');
+var Event = require("../../lib/event.js");
+var Player = require("./player.js");
+var WebSocketServer = require("ws").Server;
+var AIPlayer = require("./aiplayer.js");
+var consts = require("../../lib/const.js");
 
 function PlayerSystem(config) {
 	this.id = config.id;
@@ -10,7 +10,7 @@ function PlayerSystem(config) {
 
 	this.parent = config.parent;
 
-	this.name = 'player-system';
+	this.name = "player-system";
 	this.outPort = config.port;
 	this.players = [];
 	this.pId = 0;
@@ -25,6 +25,7 @@ function PlayerSystem(config) {
 	this.subscribedEvents[consts.EVENT_OUTGOING.FLUSH_PLAYER_MESSAGES] = function(e){
 		this.flushOutgoingPlayerMessages();
 	}
+
 
 	this.wss = new WebSocketServer({port:this.outPort});
 
@@ -89,7 +90,7 @@ PlayerSystem.prototype.addAI = function () {
 	var e = new Event(consts.EVENT_ACTION.AI_PLAYER_ADDED, {id:this.id, name:this.name},ai);
 	this.eventBroadcast(e);
 
-  	ai.spawnOrder([80, 48, 10]);
+  	ai.spawnOrder([2, 1, 10]);
 
 };
 

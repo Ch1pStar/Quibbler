@@ -234,6 +234,12 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       game.input.keyboard.addCallbacks(this, this.keyboardDownHandler,
                       this.keyboardUpHandler, this.keyboardPressHandler);
 
+      var c = game.canvas;
+      c.oncontextmenu = function(e){
+          e.preventDefault();
+      };
+
+      //add prevent default  for scroll click
 
       var highlightTile = this.game.add.graphics(0,0);
       highlightTile.lineStyle(1, 0x000000, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings
@@ -306,6 +312,9 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      */
     render: function(){
       $('#fps-tracker').text(this.game.time.fps);
+
+
+      //This is broken, will not display proper time if the client is lagging(not running at 60 fps)
       var elapsed = Math.floor((this.tickCount*this.serverTickRate)/1000);
       var elapsedMinutes = ('0'+Math.floor(elapsed/60)).slice(-2);
       var elapsedSeconds = ('0'+elapsed%60).slice(-2);
@@ -367,10 +376,21 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * @param  {Phaser.MousePointer} pointer The MousePointer object
      */
     mouseClickHandler: function(pointer){
-      console.log(pointer);
       // console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
-      var e = new GameMessageEvent(Util.EVENT_INPUT.MOUSE_CLICK, [pointer.x, pointer.y]);
-      this.inputBuffer.push(e);
+      var e;
+      switch(pointer.button){
+        case 0:
+          console.log("left click");
+          break;
+        case 1:
+          console.log("scroll click");
+          break;
+        case 2:
+          console.log("right click");
+          e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE_ORDER, [pointer.x, pointer.y]);
+          this.inputBuffer.push(e);
+          break;
+      }
     },
 
     /**
@@ -388,11 +408,17 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     keyboardUpHandler: function(e){
       console.log(e);
       if(e.keyCode == 83){
-        var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.UNIT_SPAWN, [this.highlightTile.x/32, this.highlightTile.y/32]);
+        //the ability index for the current selection of units
+        var abilityIndex = 1;
+        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_SPAWN_ORDER, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
+        this.inputBuffer.push(eventMessage);
+      }else if(e.keyCode == 65){
+        var abilityIndex = 0;
+        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_SPAWN_ORDER, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
         this.inputBuffer.push(eventMessage);
       }else{
-        var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);
-        this.inputBuffer.push(eventMessage);
+        // var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);
+        // this.inputBuffer.push(eventMessage);
       }
     },
 
@@ -438,29 +464,6 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
           // }
         }
       }
-
-
-
-
-      //R U EVEN TRYING, HOW BAD IS THIS SHIT I MEAN REALLY
-      // try{
-      //   var action = e.action;
-      //   if(action == Util.EVENT_ACTION.ENTITY_STATE_UPDATE){
-      //     // this.cc++
-      //     this.entityManager.eventQueue.push(e);
-      //   }else if(action == Util.EVENT_ACTION.PRODUCE){
-      //     this.entityManager.createEntity(e.data, this.playerManager.players[e.data[5]]);
-      //     // this.cc++;
-      //     // console.log(this.cc);
-      //   }else if(action == Util.EVENT_ACTION.RESOURCE_CHANGE){
-
-      //   }
-      // }catch(e){
-      //   console.error(e.message);
-      // }
-      // finally{
-      //   // console.log('Event: %s\n\t%o', e.action, e);
-      // }
     },
 
     caller: function (fn) {

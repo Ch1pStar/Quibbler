@@ -26,14 +26,14 @@ function EntitySystem(id, timestep, mapUrl, core) {
 	});
 	this.pfGrid = new pf.Grid(this.map.width, this.map.height);
 
-	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE_ORDER] = function(e){
+	this.subscribedEvents[consts.EVENT_ENTITY_ACTION.MOVE] = function(e){
 		// e.canPropagate = false;
-		console.log("Player %d ordered unit %d to move to %d,%d", e.data.p.id, e.data.eId, e.data.x, e.data.y);
+		console.log("\tPlayer %d ordered unit %d to move to %d,%d", e.data.p.id, e.data.eId, e.data.x, e.data.y);
 		var entity = this.entities[e.data.eId];
 		entity.addMoveCommand([e.data.x,e.data.y]);
 	}
 
-	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_SPAWN] = function(e){
+	this.subscribedEvents[consts.EVENT_ENTITY_ACTION.SPAWN] = function(e){
 		e.canPropagate = false;
 		console.log("Player %d issued a spawn entity order with type %d at %d,%d", e.data.p.id, e.data.type, e.data.x, e.data.y);
 		var data = e.data;
@@ -43,8 +43,59 @@ function EntitySystem(id, timestep, mapUrl, core) {
 		// this.addMapBounds();
 	}
 
+	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_ABILITY] = this.abilityCommandListener;
+	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE] = this.moveCommandListener;
+
+
 	this.addMapBounds();
 }
+
+	
+EntitySystem.prototype.abilityCommandListener = function(e) {
+	var player = e.creator;
+	player.selection = [];
+	player.selection.push(this.entities[0]);
+	player.highlightUnit = player.selection[0];
+
+	var currEntity = player.highlightUnit;
+	currEntity.addAbilityCommand(e.data);	
+
+};
+
+EntitySystem.prototype.moveCommandListener = function(e) {
+  var xTile = Math.round( (e.data[0]-32/2) /32);
+  var yTile = Math.round( (e.data[1]-32/2) /32);
+
+	if(!this.pfGrid.isWalkableAt(xTile,yTile)){
+		//this should return an error later on
+		return;
+	}
+
+	var player = e.creator;
+	player.selection = [];
+	// player.selection.push(this.entities[0]);
+	for (var i = 0; i < this.entities.length; i++) {
+		player.selection.push(this.entities[i]);
+	};
+
+	
+
+  var testId = 0;
+	for(var a  in player.selection){
+		
+		var currEntity = player.selection[a];
+		var data = {
+	    p: player,
+	    x: xTile*32,
+	    y: yTile*32,
+	    eId: currEntity.id,
+	    testId: testId++
+	  };
+		
+		var moveEvent = new Event(consts.EVENT_ENTITY_ACTION.MOVE, this, data);
+    this.eventBroadcast(moveEvent);
+	}
+};
 
 EntitySystem.prototype.addMap = function(url) {
 	var map = new Map(url);
@@ -107,19 +158,20 @@ EntitySystem.prototype.createP2PhysicsWorld = function (profiling) {
 	});
 
 	world.sleepMode = p2.World.BODY_SLEEPING;
+	// world.solveConstraints = false;
+	world.applyGravity = false;
 
-  // world.solveConstraints = false;
-  // world.applyGravity = false;
+	// world.on('impact', function(e){
+	// 	console.log(e.bodyA.id);
+	// });
 	return world;
 };
 
 EntitySystem.prototype.createEntity = function (data) {
-	var id = this.eId++;
 	var x = data.x;
 	var y = data.y;
 	var type = data.type;
 	var entity = new Entity({
-		id:id,
 		x:x,
 		y:y,
 		r:0,
@@ -129,11 +181,14 @@ EntitySystem.prototype.createEntity = function (data) {
 		type:type,
 		owner: data.p,
 		mass: data.mass,
-		manager: this
+		manager: this,
+		id: this.eId++
 	});
-	this.entities[id] = entity;
-	this.physics.addBody(entity.body);
+	entity.addAbility('melee-attack');
+	entity.addAbility('train-unit');
 
+	this.entities[entity.id] = entity;
+	this.physics.addBody(entity.body);
 
 	var data = entity.getInitialNetworkAttributes();
 	var resultEvent = new Event(consts.EVENT_ACTION.PRODUCE, {}, data);

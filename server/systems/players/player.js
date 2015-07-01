@@ -1,6 +1,6 @@
 var Event = require('../../lib/event.js');
 var consts = require('../../lib/const.js');
-var InputHandler = require('./inputhandler.js');
+var CommandInputHandler = require('./input/commandinputhandler.js');
 var MessageQueue = require('../../lib/messagequeue.js');
 
 function Player (id, ws, manager) {
@@ -9,7 +9,7 @@ function Player (id, ws, manager) {
 	this.isAI = false;
 	this.connection = ws;
 	this.manager = manager;
-	this.inputHandler = new InputHandler();
+	this.inputHandler = new CommandInputHandler(this);
 	this.outgoingMessages = new MessageQueue(this.manager.outgoingPlayerMessageLimit);
 	var self = this;
 	this.connected = true;
@@ -19,7 +19,15 @@ function Player (id, ws, manager) {
 	this.connection.on('close', function(){
 		self.onDisconnect();
 	});
-}
+
+  //Collection of the currently selected units that will respond to a move/attack/ability command
+  this.selection = [];
+
+  this.highlightUnit;
+
+
+  
+} 
 
 Player.prototype.flushOutgoingMessages = function () {
 	while(!this.outgoingMessages.empty()){
@@ -35,14 +43,20 @@ Player.prototype.onDisconnect = function () {
 };
 
 Player.prototype.onMessage = function(msg) {
-	var data = this.parseMassage(msg);
-	if(data.action == consts.EVENT_ACTION.PING){
+	var data = this.parseMessage(msg);
+  if(data.action == consts.EVENT_ACTION.PING){
 		this.pingReply();
-	}else if(data.action == consts.EVENT_INPUT.INPUT_BUFFER){
-		var parsedInput = this.inputHandler.parseInputBuffer(data.data);
-		this.manager.eventBroadcast(data);
 	}else{
-		this.manager.eventBroadcast(data);
+
+    //Create an array of parsed commands(events) and broadcast them in order
+		var parsedInput = this.inputHandler.parseCommandBuffer(data.data);
+
+    for(var i in parsedInput){
+      var e = parsedInput[i];
+      this.manager.eventBroadcast(e);
+    }
+
+    // this.manager.eventBroadcast(data);
 	}
 };
 
@@ -61,7 +75,7 @@ Player.prototype.sendMessage = function (msg, bytesPerValue) {
 	}
 };
 
-Player.prototype.parseMassage = function (msg) {
+Player.prototype.parseMessage = function (msg) {
 	var msgObj;
   try{
     var data = null;

@@ -24,11 +24,13 @@ function MessageQueue(size){
  * @param  {Object}
  */
 MessageQueue.prototype.push = function(message) {
+
   this._data[this._tail] = message;
-    this._tail = (this._tail + 1) % this._size;
-    if (this._tail == this._head){
-      this._head = (this._head + 1) % this._size; /* full, overwrite */
-    }
+  this._tail = (this._tail + 1) % this._size;
+  if (this._tail == this._head){
+    this._head = (this._head + 1) % this._size; /* full, overwrite */
+  }
+
 };
 
 /**
@@ -37,6 +39,7 @@ MessageQueue.prototype.push = function(message) {
  * @return {Object}
  */
 MessageQueue.prototype.next = function() {
+
   var message = this._data[this._head];
   this._data[this._head] = null;
   this._head = (this._head + 1) % this._size;

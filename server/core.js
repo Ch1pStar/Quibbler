@@ -32,6 +32,7 @@ function Core(config){
 
 	this.systems.push(ps);
 
+	console.log("asd - ", config.mapUrl);
 
 	var es = new EntitySystem(this.sId++, this.tickRate/1000, config.mapUrl, this);
 	es.setEventBroadcast(function(e){
@@ -61,25 +62,26 @@ function Core(config){
 
 Core.prototype.handleEventQueue = function () {
 	while(!this.eventQueue.empty()){
-		this.dispatchEvent(this.eventQueue.next());
+		var e = this.eventQueue.next();
+		this.dispatchEvent(e);
 	}
 };
 
 Core.prototype.dispatchEvent = function (e) {
 	//Add a tick stamp to the event
 	e.tick = this.tick;
-	// console.log("----Begin Event(action: %s) Dispatch at %d(%dms)----", e.action, e.tick, Math.round(e.tick*this.tickRate));
+	console.log("----Begin Event(action: %s) Dispatch at %d(%dms)----", e.action, e.tick, Math.round(e.tick*this.tickRate));
 	for(var s in this.systems){
 		var currSystem = this.systems[s];
 		var subbedEvents = currSystem.getSubscribedEvents();
 		var eventCallback = subbedEvents[e.action];
 		if(typeof eventCallback !== 'undefined'){
 			if(e.canPropagate){
-				eventCallback.apply(currSystem, [e]);
+				eventCallback.call(currSystem, e);
 			}
 		}
 	}
-	// console.log("------------Event Delivered----------");
+	console.log("------------Event Delivered----------\n");
 };
 
 module.exports = Core;

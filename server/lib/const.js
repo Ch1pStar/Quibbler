@@ -26,7 +26,13 @@ exports.EVENT_OUTGOING = Object.freeze({
 });
 
 exports.EVENT_PLAYER_COMMAND = Object.freeze({
-  UNIT_MOVE_ORDER: 30,
-  UNIT_ATTACK_ORDER: 31,
-  UNIT_SPAWN: 32
+  UNIT_MOVE: 30,
+  UNIT_ATTACK: 31,
+  UNIT_ABILITY: 32
+});
+
+
+exports.EVENT_ENTITY_ACTION = Object.freeze({
+  SPAWN: 40,
+  MOVE: 41
 });

@@ -31,7 +31,6 @@ define(['../eventqueue', 'gamemessageevent'], function(EventQueue, GameMessageEv
     },
 
     getSubscribedEvents: function(){
-
       return this.subscribedEvents;
     }
 

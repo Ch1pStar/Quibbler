@@ -20,10 +20,11 @@ define([], function(){
       var grphx = this.pGame.add.graphics(centerX, centerY);  //init rect
       grphx.lineStyle(1, this.owner.team.color, 1); // width, color // required settings
       grphx.beginFill(this.owner.team.color, .2) // color  // required settings
-      grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
+      // grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
+      grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, this.tileHeight); // x, y, width, height
 
       grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 1);
-      grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 20);
+      // grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 20);
 
       // this.t = grphx;
       this.obj = grphx;
@@ -90,6 +91,8 @@ define([], function(){
     resolvePosition: function(){
 
       var currentTime = this.pGame.time.now;
+      var tickTime = this.manager.game.tickCount;
+
       // console.log(this.pGame.time.now);
       var count = this.frames.length-1;
       var targetFrame = null;
@@ -98,6 +101,7 @@ define([], function(){
       for(var i = 0; i < count; ++i) {
           var point = this.frames[i];
           var nextPoint = this.frames[i+1];
+
           if(currentTime > point.t && currentTime < nextPoint.t) {
               targetFrame = nextPoint;
               previousFrame = point;
@@ -106,11 +110,13 @@ define([], function(){
       }
 
       if(!targetFrame) {
+        console.log("no frame or dropped packet");
         targetFrame = this.frames[this.frames.length - 1];
         previousFrame = this.frames[this.frames.length - 1];
       }
 
       if(targetFrame && previousFrame) {
+
 
         this.targetTime = targetFrame.t;
 
