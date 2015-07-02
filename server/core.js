@@ -51,14 +51,45 @@ function Core(config){
 	this.systems.push(ss);
 
 
+	this.timers = [];
 
 	setInterval(function(){
 		self.handleEventQueue();
 		self.es.update();
+		self.processTimers()
 		self.tick++;
 	}, self.tickRate);
 
 }
+
+Core.prototype.processTimers = function() {
+	for (var i = 0; i < this.timers.length; i++) {
+		var t  = this.timers[i];
+		if((t.t+t.on) == this.tick){
+			t.cb.call(t.cbCtx, t.d);
+			if(t.r){
+				t.on=this.tick;
+			}else{
+				this.timers.splice(i--,1);
+			}
+		}
+	};
+};
+
+Core.prototype.registerTimer = function(delay, callback, cbArg, ctx, interval) {
+	if(typeof interval == 'undefined'){
+		interval = false;
+	}
+	console.log(interval);
+	var delayTick = Math.round(delay/this.tickRate);
+	this.timers.push({t:delayTick, 
+		on:this.tick,
+		cb:callback,
+		d:cbArg,
+		cbCtx:ctx, 
+		r:interval
+	});
+};
 
 Core.prototype.handleEventQueue = function () {
 	while(!this.eventQueue.empty()){

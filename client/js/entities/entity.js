@@ -151,7 +151,7 @@ define([], function(){
         this.obj.rotation = this.lerp(targetPos.r, prevPos.r, timePoint);
 
         this.resolveVision(targetFrame);
-        this.drawPath(targetFrame.path);
+        // this.drawPath(targetFrame.path);
       }
 
     },

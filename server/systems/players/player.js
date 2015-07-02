@@ -70,7 +70,7 @@ Player.prototype.pingReply = function () {
 
 Player.prototype.sendMessage = function (msg, bytesPerValue) {
 	var data = msg.prepareForTransfer(bytesPerValue);
-	if(data){
+	if(data && this.connected){
 		return this.connection.send(data);
 	}
 };
