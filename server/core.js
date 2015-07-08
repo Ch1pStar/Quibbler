@@ -56,6 +56,7 @@ function Core(config){
 	setInterval(function(){
 		self.handleEventQueue();
 		self.es.update();
+		self.ps.update();
 		self.processTimers()
 		self.tick++;
 	}, self.tickRate);

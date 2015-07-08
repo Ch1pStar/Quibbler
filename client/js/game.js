@@ -387,7 +387,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
           break;
         case 2:
           console.log("right click");
-          e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE_ORDER, [pointer.x, pointer.y]);
+          e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE, [pointer.x, pointer.y]);
           this.inputBuffer.push(e);
           break;
       }
@@ -406,15 +406,20 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * @param  {Phaser.KeyboardEvent} e
      */
     keyboardUpHandler: function(e){
-      console.log(e);
-      if(e.keyCode == 83){
+      console.log(e.keyCode);
+      if(e.keyCode == 83){ // s
         //the ability index for the current selection of units
         var abilityIndex = 1;
-        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_SPAWN_ORDER, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
+        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_ABILITY, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
         this.inputBuffer.push(eventMessage);
-      }else if(e.keyCode == 65){
+      }else if(e.keyCode == 65){ // a
         var abilityIndex = 0;
-        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_SPAWN_ORDER, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
+        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_ABILITY, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
+        this.inputBuffer.push(eventMessage);
+      }else if(e.keyCode == 67){ // c
+        //clear all entities
+        var abilityIndex = 0
+        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [abilityIndex]);
         this.inputBuffer.push(eventMessage);
       }else{
         // var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);

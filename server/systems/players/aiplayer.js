@@ -12,6 +12,13 @@ function AIPlayer(id, manager){
   this.listenStdin();
 }
 
+
+AIPlayer.prototype.update = function() {
+  
+};
+
+
+//tmp
 AIPlayer.prototype.listenStdin = function () {
 
   var self = this;

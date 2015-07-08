@@ -3,6 +3,8 @@ var consts = require('../../lib/const.js');
 var CommandInputHandler = require('./input/commandinputhandler.js');
 var MessageQueue = require('../../lib/messagequeue.js');
 
+var ClearAllEntities = require('./abilities/clearallentities.js');
+
 function Player (id, ws, manager) {
 	this.id = id;
 	this.name = 'player';
@@ -26,8 +28,23 @@ function Player (id, ws, manager) {
   this.highlightUnit;
 
 
-  
-} 
+  this.globalAbilities = [new ClearAllEntities(this)];
+  this.abilityQueue = [];
+
+}
+
+Player.prototype.update = function() {
+  //abilities
+  var abilityData;
+  while(typeof(abilityData=this.abilityQueue.shift())!='undefined'){
+    var ability = this.globalAbilities[abilityData[0]];
+    ability.run(abilityData);
+  }
+};
+
+Player.prototype.addAbilityCommand = function (data) {
+  this.abilityQueue[0] = data;
+};
 
 Player.prototype.flushOutgoingMessages = function () {
 	while(!this.outgoingMessages.empty()){

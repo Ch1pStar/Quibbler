@@ -45,6 +45,12 @@ function EntitySystem(id, timestep, mapUrl, core) {
 
 	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_ABILITY] = this.abilityCommandListener;
 	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE] = this.moveCommandListener;
+	
+
+
+	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY] = function(e){
+		console.log(e.data);
+	};
 
 
 	this.addMapBounds();

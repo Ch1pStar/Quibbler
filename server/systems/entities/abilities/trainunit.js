@@ -8,13 +8,11 @@ function TrainUnit(entity) {
 
   this.trainTimeMs = 1000;
 
-  this.runData;
 }
 
 TrainUnit.prototype.run = function(data) {
   console.log("Used ability - %s at %d", this.name, this.entity.manager.core.tick);
 
-  this.runData = data;
   this.entity.manager.core.registerTimer(this.trainTimeMs, this.trainFinished, data, this, false);
 
 };

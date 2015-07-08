@@ -28,7 +28,8 @@ exports.EVENT_OUTGOING = Object.freeze({
 exports.EVENT_PLAYER_COMMAND = Object.freeze({
   UNIT_MOVE: 30,
   UNIT_ATTACK: 31,
-  UNIT_ABILITY: 32
+  UNIT_ABILITY: 32,
+  GLOBAL_ABILITY: 33
 });
 
 

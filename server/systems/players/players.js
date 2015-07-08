@@ -8,7 +8,7 @@ function PlayerSystem(config) {
 	this.id = config.id;
 	this.outgoingPlayerMessageLimit = config.outgoingPlayerMessageLimit;
 
-	this.parent = config.parent;
+	this.core = config.parent;
 
 	this.name = "player-system";
 	this.outPort = config.port;
@@ -26,6 +26,8 @@ function PlayerSystem(config) {
 		this.flushOutgoingPlayerMessages();
 	}
 
+  this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY] = this.abilityCommandListener;
+
 
 	this.wss = new WebSocketServer({port:this.outPort});
 
@@ -38,6 +40,23 @@ function PlayerSystem(config) {
 
 };
 
+
+PlayerSystem.prototype.abilityCommandListener = function(e) {
+	var player = e.creator;
+
+	player.addAbilityCommand(e.data);	
+
+};
+
+PlayerSystem.prototype.update = function() {
+	for(var i in this.players){
+		var p = this.players[i];
+		p.update();
+	}
+
+};
+
+
 PlayerSystem.prototype.startOutgoingMessageInterval = function () {
 
 	var self = this;
@@ -47,8 +66,8 @@ PlayerSystem.prototype.startOutgoingMessageInterval = function () {
 			updatedUnits[i] = [];
 		}
 
-		for(var i in self.parent.es.entities){
-			var currEntity = self.parent.es.entities[i];
+		for(var i in self.core.es.entities){
+			var currEntity = self.core.es.entities[i];
 			if(currEntity.stateChanged){
 				for(var p in currEntity.seenBy){
 					var playerId = currEntity.seenBy[p];
@@ -70,7 +89,7 @@ PlayerSystem.prototype.startOutgoingMessageInterval = function () {
 			}
 		}
 		self.flushOutgoingPlayerMessages();
-	},this.parent.tickRate*this.parent.playersUpdateInterval);
+	},this.core.tickRate*this.core.playersUpdateInterval);
 };
 
 PlayerSystem.prototype.broadcastToPlayers = function (e) {
@@ -115,8 +134,8 @@ PlayerSystem.prototype.onConnect = function(ws) {
 };
 
 PlayerSystem.prototype.sendCurrentStateToPlayer = function(p){
-	for(var i in this.parent.es.entities){
-		var entity = this.parent.es.entities[i];
+	for(var i in this.core.es.entities){
+		var entity = this.core.es.entities[i];
 		var data = entity.getInitialNetworkAttributes();
 		var entityProduceEvent = new Event(consts.EVENT_ACTION.PRODUCE, {}, data);
 		p.outgoingMessages.push(entityProduceEvent);
@@ -124,7 +143,7 @@ PlayerSystem.prototype.sendCurrentStateToPlayer = function(p){
 };
 
 PlayerSystem.prototype.sendWelcomeMessageToPlayer = function (p) {
-	var we = new Event(consts.EVENT_ACTION.PLAYER_CONNECTED,{},[this.parent.tick, this.parent.tickRate, this.parent.playersUpdateInterval]);
+	var we = new Event(consts.EVENT_ACTION.PLAYER_CONNECTED,{},[this.core.tick, this.core.tickRate, this.core.playersUpdateInterval]);
 	p.outgoingMessages.push(we);
 };
 

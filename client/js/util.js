@@ -19,9 +19,10 @@ define({
   }),
 
   EVENT_PLAYER_COMMAND: Object.freeze({
-    UNIT_MOVE_ORDER: 30,
-    UNIT_ATTACK_ORDER: 31,
-    UNIT_SPAWN_ORDER: 32
+    UNIT_MOVE: 30,
+    UNIT_ATTACK: 31,
+    UNIT_ABILITY: 32,
+    GLOBAL_ABILITY: 33
   }),
 
 
