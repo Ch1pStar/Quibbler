@@ -60,6 +60,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     this.serverTickRate = 0;
     this.serverUpdateInterval = 0;
 
+    this.playingPlayerId;
+
     //Dev testing stuff, detele when done
     this.cc = 0;
 
@@ -142,6 +144,14 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       this.tickCount = data[0];
       this.serverTickRate = data[1];
       this.serverUpdateInterval = data[2];
+
+      this.playingPlayerId = data[3];
+
+      this.existingPlayers = [];
+      for (var i = 5; i < 5+data[4]; i++) {
+        console.log(data[i]);
+        this.existingPlayers.push(data[i]);
+      };
 
       // var wWidth = $(window).width();
       var gameWidth = 32*38;//tmp
@@ -269,14 +279,18 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
         for (var i = 0; i < this.gameSystems.length; i++) {
           this.gameSystems[i].setEventCallbackContext(this);
         };
+        
+        //add existing players
+        for (var i = 0; i < this.existingPlayers.length; i++) {
+          var pid = this.existingPlayers[i];
+          this.playerManager.addTeam(pid, 0xF28511);
+          this.playerManager.addPlayer(pid, pid, false);
+        };
 
-        this.playerManager.addTeam(0, 0xF28511);
-        this.playerManager.addTeam(1, 0x00FF00);
-        this.playerManager.addTeam(2, 0xDDFFDD);
-
-        this.playerManager.addPlayer(0, 0, false);
-        this.playerManager.addPlayer(1, 1, true);
-        this.playerManager.addPlayer(2, 2, false);
+        //add current player
+        this.playerManager.addTeam(this.playingPlayerId, 0x00FF00);
+        this.playerManager.addPlayer(this.playingPlayerId, this.playingPlayerId, true);
+        
 
         this.entityManager.addFogOfWar();
       }catch(e){
@@ -408,9 +422,8 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     keyboardUpHandler: function(e){
       console.log(e.keyCode);
       if(e.keyCode == 83){ // s
-        //the ability index for the current selection of units
         var abilityIndex = 1;
-        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_ABILITY, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
+        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
         this.inputBuffer.push(eventMessage);
       }else if(e.keyCode == 65){ // a
         var abilityIndex = 0;
@@ -419,7 +432,12 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       }else if(e.keyCode == 67){ // c
         //clear all entities
         var abilityIndex = 0
-        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [abilityIndex]);
+        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [0,0,abilityIndex]);
+        this.inputBuffer.push(eventMessage);
+      }else if(e.keyCode == 86){ // v
+        //clear selected entities
+        var abilityIndex = 2
+        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [0,0,abilityIndex]);
         this.inputBuffer.push(eventMessage);
       }else{
         // var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);

@@ -88,6 +88,12 @@ define([], function(){
       this.obj.visible = false;
     },
 
+    remove: function(){
+      this.obj.destroy();
+
+      //maybe free entity resources aswell? who cares maybe later
+    },
+
     resolvePosition: function(){
 
       var currentTime = this.pGame.time.now;

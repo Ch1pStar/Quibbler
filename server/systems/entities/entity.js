@@ -89,18 +89,18 @@ Entity.prototype.update = function () {
   //abilities
   var abilityData;
   while(typeof(abilityData=this.abilityQueue.shift())!='undefined'){
-    var ability = this.abilities[abilityData[2]];
-    ability.run(abilityData);
+    try{
+      var ability = this.abilities[abilityData[2]];
+      ability.run(abilityData);
+    }catch(e){
+      console.log("Invalid ability used - %d", abilityData[2]);
+    }
   }
   
 
   //vision
   this.resolveSeenBy();
 };
-
-
-
-
 
 Entity.prototype.resolveSeenBy = function() {
   this.seenBy = [];

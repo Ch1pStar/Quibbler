@@ -5,16 +5,21 @@
  * @param {Object}
  * @param {int}
  */
-function Event(action, creator, data){
+function Event(action, creator, data, networkReady){
 
   if(typeof data == 'undefined'){
     data = null;
+  }
+
+  if(typeof networkReady == 'undefined'){
+    networkReady = true;
   }
 
   this.action = action;
   this.data = data;
 	this.creator = creator;
 	this.canPropagate = true;
+  this.networkReady = networkReady;
 }
 
 /**
@@ -30,27 +35,44 @@ Event.prototype.read = function() {
 };
 
 Event.prototype.prepareForTransfer = function(bytesPerValue) {
+  
+  var nData;
+  if(this.networkReady){
+    nData = this.data;
+  }else{
+    nData = this.parseDataForNetwork();
+  }
+
   if(typeof bytesPerValue == 'undefined'){
     bytesPerValue = 8;
   }
-  var bufLength = this.data?(this.data.length*bytesPerValue)+2:1;
+  var bufLength = nData?(nData.length*bytesPerValue)+2:1;
 	var buf = new Buffer(bufLength);
 	buf.writeInt8(this.action,0);
-	if(this.data){
+	if(nData){
 		buf.writeInt8(bytesPerValue, 1);
-	  for (var i = 0,j=2; i < this.data.length; i++,j+=bytesPerValue) {
+	  for (var i = 0,j=2; i < nData.length; i++,j+=bytesPerValue) {
 	    if(bytesPerValue == 8){
-	      buf.writeDoubleBE(this.data[i], j);
+	      buf.writeDoubleBE(nData[i], j);
 	    }else if(bytesPerValue == 4){
-	      buf.writeFloatBE(this.data[i], j);
+	      buf.writeFloatBE(nData[i], j);
 	    }else if (bytesPerValue == 2){
-	      buf.writeInt16BE(this.data[i], j);
+	      buf.writeInt16BE(nData[i], j);
 	    }else if (bytesPerValue == 1){
-	      buf.writeInt8(this.data[i], j);
+	      buf.writeInt8(nData[i], j);
 	    }
 		};
 	}
 	return buf;
+};
+
+Event.prototype.parseDataForNetwork = function() {
+  var parsedData = [];
+  for(var i in this.data){
+    parsedData.push(this.data[i]);
+  }
+  parsedData.unshift(parsedData.length);
+  return parsedData;
 };
 
 module.exports = Event;

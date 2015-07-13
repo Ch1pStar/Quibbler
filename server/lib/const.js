@@ -7,6 +7,7 @@ exports.EVENT_ACTION = Object.freeze({
   PRODUCE: 1,
   RESOURCE_CHANGE: 2,
   PLAYER_CONNECTED: 3,
+  WELCOME: 7,
   PLAYER_DISCONNECTED: 6,
   AI_PLAYER_ADDED: 5,
   PING: 4
@@ -35,5 +36,6 @@ exports.EVENT_PLAYER_COMMAND = Object.freeze({
 
 exports.EVENT_ENTITY_ACTION = Object.freeze({
   SPAWN: 40,
-  MOVE: 41
+  MOVE: 41,
+  REMOVE: 42
 });

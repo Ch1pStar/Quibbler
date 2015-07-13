@@ -6,7 +6,8 @@ define({
     ENTITY_STATE_UPDATE: 0,
     PRODUCE: 1,
     RESOURCE_CHANGE: 2,
-    WELCOME: 3,
+    WELCOME: 7,
+    PLAYER_CONNECTED:3,
     PING: 4
   }),
 
@@ -34,6 +35,7 @@ define({
 
   EVENT_ENTITY_ACTION: Object.freeze({
     SPAWN: 40,
-    MOVE: 41
+    MOVE: 41,
+    REMOVE: 42
   })
 });

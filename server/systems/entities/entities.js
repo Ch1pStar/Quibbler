@@ -48,11 +48,6 @@ function EntitySystem(id, timestep, mapUrl, core) {
 	
 
 
-	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY] = function(e){
-		console.log(e.data);
-	};
-
-
 	this.addMapBounds();
 }
 
@@ -81,12 +76,13 @@ EntitySystem.prototype.moveCommandListener = function(e) {
 	player.selection = [];
 	// player.selection.push(this.entities[0]);
 	for (var i = 0; i < this.entities.length; i++) {
-		player.selection.push(this.entities[i]);
+		var currEntity = this.entities[i];
+		if(currEntity!=null){
+			player.selection.push(currEntity);
+		}
 	};
 
 	
-
-  var testId = 0;
 	for(var a  in player.selection){
 		
 		var currEntity = player.selection[a];
@@ -94,8 +90,7 @@ EntitySystem.prototype.moveCommandListener = function(e) {
 	    p: player,
 	    x: xTile*32,
 	    y: yTile*32,
-	    eId: currEntity.id,
-	    testId: testId++
+	    eId: currEntity.id
 	  };
 		
 		var moveEvent = new Event(consts.EVENT_ENTITY_ACTION.MOVE, this, data);
@@ -145,12 +140,12 @@ EntitySystem.prototype.addMapBounds = function() {
 EntitySystem.prototype.update = function () {
 	for(var i in this.entities){
 		var currEntity = this.entities[i];
-
-		var entityXBlocking = Math.round((currEntity.body.position[0]-16)/this.map.tileWidth);
-		var entityYBlocking = Math.round((currEntity.body.position[1]-16)/this.map.tileHeight);
-		// this.pfGrid.setWalkableAt(entityXBlocking, entityYBlocking,	!currEntity.blocking);
-
-		currEntity.update();
+		if(currEntity != null){
+			var entityXBlocking = Math.round((currEntity.body.position[0]-16)/this.map.tileWidth);
+			var entityYBlocking = Math.round((currEntity.body.position[1]-16)/this.map.tileHeight);
+			// this.pfGrid.setWalkableAt(entityXBlocking, entityYBlocking,	!currEntity.blocking);
+			currEntity.update();
+		}
 	}
 
 	this.physics.step(this.timestep);
@@ -191,7 +186,7 @@ EntitySystem.prototype.createEntity = function (data) {
 		id: this.eId++
 	});
 	entity.addAbility('melee-attack');
-	entity.addAbility('train-unit');
+	// entity.addAbility('train-unit');
 
 	this.entities[entity.id] = entity;
 	this.physics.addBody(entity.body);
@@ -199,6 +194,36 @@ EntitySystem.prototype.createEntity = function (data) {
 	var data = entity.getInitialNetworkAttributes();
 	var resultEvent = new Event(consts.EVENT_ACTION.PRODUCE, {}, data);
 	this.eventBroadcast(resultEvent);
+};
+
+EntitySystem.prototype.removeEntity = function(eId) {
+	var e = this.entities[eId];
+	this.physics.removeBody(e.body);
+	// this.entities.splice(this.entities.indexOf(e),1);
+	var removeEvent = new Event(consts.EVENT_ENTITY_ACTION.REMOVE, {}, [1,eId]);
+	console.log(removeEvent);
+	this.core.ps.broadcastToPlayers(removeEvent);
+	this.entities[eId] = null;
+};
+
+EntitySystem.prototype.removeAllEntities = function() {
+  for (var i in this.entities) {
+  	var e = this.entities[i];
+  	if(e!=null){
+    	this.removeEntity(this.entities[i].id);
+  	}
+  };
+};
+
+EntitySystem.prototype.getActiveEntities = function() {
+	var data = [];
+	for (var i = 0; i < this.entities.length; i++) {
+		var e = this.entities[i];
+		if(e!=null){
+			data.push(e);
+		}
+	};
+	return data;
 };
 
 

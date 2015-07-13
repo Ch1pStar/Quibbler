@@ -28,6 +28,4 @@ TrainUnit.prototype.trainFinished = function(data) {
 
 };
 
-
-
 module.exports = TrainUnit;

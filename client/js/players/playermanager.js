@@ -1,7 +1,7 @@
 /**
  * AudioManager - Audio system manager, extends IManager
  */
-define(['../core/imanager', 'players/player', 'players/team'], function(IManager, Player, Team){
+define(['../core/imanager', 'players/player', 'players/team', '../util'], function(IManager, Player, Team, Util){
 
 	var PlayerManager = IManager.extend({
 
@@ -9,6 +9,15 @@ define(['../core/imanager', 'players/player', 'players/team'], function(IManager
 			this._super();
 			this.players = [];
 			this.teams = [];
+
+			this.subscribedEvents[Util.EVENT_ACTION.PLAYER_CONNECTED] = this.playerConnected;
+		},
+
+		playerConnected: function(e){
+			console.log(e);
+			var pid = e.data[0];
+			this.addTeam(pid, 0xF28511);
+			this.addPlayer(pid, pid, false);
 		},
 		getPlayingPlayer: function(){
 			for (var i = 0; i < this.players.length; i++) {

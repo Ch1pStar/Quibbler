@@ -40,7 +40,9 @@ AIPlayer.prototype.listenStdin = function () {
         parsedData.shift();
         self.spawnOrder(parsedData);
       }else if(data[0] == 'info'){
-        console.log(self.manager.parent.es.entities[data[1]]);
+        console.log(self.manager.core.es.entities[data[1]]);
+      }else if(data[0] == 'pinfo'){
+        console.log(self.manager.players.length);
       }
     }
   });

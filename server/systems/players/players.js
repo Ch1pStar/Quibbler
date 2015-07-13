@@ -40,7 +40,6 @@ function PlayerSystem(config) {
 
 };
 
-
 PlayerSystem.prototype.abilityCommandListener = function(e) {
 	var player = e.creator;
 
@@ -56,7 +55,6 @@ PlayerSystem.prototype.update = function() {
 
 };
 
-
 PlayerSystem.prototype.startOutgoingMessageInterval = function () {
 
 	var self = this;
@@ -66,8 +64,9 @@ PlayerSystem.prototype.startOutgoingMessageInterval = function () {
 			updatedUnits[i] = [];
 		}
 
-		for(var i in self.core.es.entities){
-			var currEntity = self.core.es.entities[i];
+		var entities = self.core.es.getActiveEntities();
+		for(var i in entities){
+			var currEntity = entities[i];
 			if(currEntity.stateChanged){
 				for(var p in currEntity.seenBy){
 					var playerId = currEntity.seenBy[p];
@@ -125,17 +124,21 @@ PlayerSystem.prototype.flushOutgoingPlayerMessages = function () {
 PlayerSystem.prototype.onConnect = function(ws) {
 	var id = this.pId++;
 	var p = new Player(id, ws, this);
-	this.players[id] = p;
-	var e = new Event(consts.EVENT_ACTION.PLAYER_CONNECTED, {id:this.id, name:this.name},{id:id});
+	p.addGlobalAbility('spawn-entity');
+	p.addGlobalAbility('clear-entity');
+	var e = new Event(consts.EVENT_ACTION.PLAYER_CONNECTED, {id:this.id, name:this.name},{id:id}, false);
 	this.eventBroadcast(e);
+	this.broadcastToPlayers(e);
 
 	this.sendWelcomeMessageToPlayer(p);
 	this.sendCurrentStateToPlayer(p);
+	this.players[id] = p;
 };
 
 PlayerSystem.prototype.sendCurrentStateToPlayer = function(p){
-	for(var i in this.core.es.entities){
-		var entity = this.core.es.entities[i];
+	var entities = this.core.es.getActiveEntities();
+	for(var i in entities){
+		var entity = entities[i];
 		var data = entity.getInitialNetworkAttributes();
 		var entityProduceEvent = new Event(consts.EVENT_ACTION.PRODUCE, {}, data);
 		p.outgoingMessages.push(entityProduceEvent);
@@ -143,7 +146,12 @@ PlayerSystem.prototype.sendCurrentStateToPlayer = function(p){
 };
 
 PlayerSystem.prototype.sendWelcomeMessageToPlayer = function (p) {
-	var we = new Event(consts.EVENT_ACTION.PLAYER_CONNECTED,{},[this.core.tick, this.core.tickRate, this.core.playersUpdateInterval]);
+	var data = [this.core.tick, this.core.tickRate, this.core.playersUpdateInterval, p.id];
+	data.push(this.players.length);
+	for (var i = 0; i < this.players.length; i++) {
+		data.push(this.players[i].id);
+	};
+	var we = new Event(consts.EVENT_ACTION.WELCOME,{},data);
 	p.outgoingMessages.push(we);
 };
 

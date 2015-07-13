@@ -4,6 +4,8 @@ var CommandInputHandler = require('./input/commandinputhandler.js');
 var MessageQueue = require('../../lib/messagequeue.js');
 
 var ClearAllEntities = require('./abilities/clearallentities.js');
+var ClearEntity = require('./abilities/clearentity.js');
+var SpawnEntity = require('./abilities/spawnentity.js');
 
 function Player (id, ws, manager) {
 	this.id = id;
@@ -37,8 +39,16 @@ Player.prototype.update = function() {
   //abilities
   var abilityData;
   while(typeof(abilityData=this.abilityQueue.shift())!='undefined'){
-    var ability = this.globalAbilities[abilityData[0]];
+    var ability = this.globalAbilities[abilityData[2]];
     ability.run(abilityData);
+  }
+};
+
+Player.prototype.addGlobalAbility = function(name) {
+  if(name=="spawn-entity"){
+    this.globalAbilities.push(new SpawnEntity(this));
+  }else if(name == "clear-entity"){
+    this.globalAbilities.push(new ClearEntity(this));
   }
 };
 
@@ -49,7 +59,7 @@ Player.prototype.addAbilityCommand = function (data) {
 Player.prototype.flushOutgoingMessages = function () {
 	while(!this.outgoingMessages.empty()){
 		var e = this.outgoingMessages.next();
-		this.sendMessage(e);
+    this.sendMessage(e);
 	}
 };
 
@@ -88,7 +98,11 @@ Player.prototype.pingReply = function () {
 Player.prototype.sendMessage = function (msg, bytesPerValue) {
 	var data = msg.prepareForTransfer(bytesPerValue);
 	if(data && this.connected){
-		return this.connection.send(data);
+    try{
+      return this.connection.send(data);
+    }catch(e){
+      console.error("Attempt to send message to disconnected client - %d", this.id);
+    }
 	}
 };
 

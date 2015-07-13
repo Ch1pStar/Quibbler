@@ -19,6 +19,7 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
       this.subscribedEvents = {};
 
       this.subscribedEvents[Util.EVENT_ACTION.ENTITY_STATE_UPDATE] = this.onEntityStateUpdate;
+      this.subscribedEvents[Util.EVENT_ENTITY_ACTION.REMOVE] = this.removeEnitity;
       this.subscribedEvents[Util.EVENT_ACTION.PRODUCE] = this.createEntity;
 
       this.pathfinder = new pf.AStarFinder({
@@ -70,55 +71,56 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
       // console.log(lerpTargetTime, this.pGame.time.now);
       var lerpTargetTime = e.timeStamp;
       var currEntity = this.entities[e.data[3]];
-      var currEntityAttributesCount = 7;
-      var currEntitySeenByLength = e.data[6];
-      var currEntitySeenByArr = new Array(currEntitySeenByLength);
-      for (var i = 0; i < currEntitySeenByLength; i++) {
-        var currEntitySeenBy = e.data[i+currEntityAttributesCount];
-        currEntitySeenByArr[i] = currEntitySeenBy;
-      };
+      if(currEntity!=null){
 
-      var currEntityPathStart = currEntitySeenByLength+currEntityAttributesCount;
-      var currEntityPathLength = e.data[currEntityPathStart];
-      var currEntityPathArr = new Array(currEntityPathLength || 0);
+        var currEntityAttributesCount = 7;
+        var currEntitySeenByLength = e.data[6];
+        var currEntitySeenByArr = new Array(currEntitySeenByLength);
+        for (var i = 0; i < currEntitySeenByLength; i++) {
+          var currEntitySeenBy = e.data[i+currEntityAttributesCount];
+          currEntitySeenByArr[i] = currEntitySeenBy;
+        };
 
-      for (var i = 0; i < currEntityPathLength; i++) {
-        var pathNode = [];
-        var k = ((i+1)*2)+currEntityPathStart;
-        pathNode.push(e.data[k-1]);
-        pathNode.push(e.data[k]);
-        currEntityPathArr[i] = pathNode;
-      };
-      
-      var currEntityLocalPath = [];
-      if(currEntityPathArr.length>0){
+        var currEntityPathStart = currEntitySeenByLength+currEntityAttributesCount;
+        var currEntityPathLength = e.data[currEntityPathStart];
+        var currEntityPathArr = new Array(currEntityPathLength || 0);
 
-      
-        var tarNode = currEntityPathArr[currEntityPathArr.length-1];
+        for (var i = 0; i < currEntityPathLength; i++) {
+          var pathNode = [];
+          var k = ((i+1)*2)+currEntityPathStart;
+          pathNode.push(e.data[k-1]);
+          pathNode.push(e.data[k]);
+          currEntityPathArr[i] = pathNode;
+        };
+        
+        var currEntityLocalPath = [];
+        if(currEntityPathArr.length>0){
 
-        var grid = this.pfGrid.clone();
-        var pf = this.pathfinder;
-      
-        var srcXTile = Math.round((e.data[0]-32/2)/32);
-        var srcYTile = Math.round((e.data[1]-32/2)/32);
+        
+          var tarNode = currEntityPathArr[currEntityPathArr.length-1];
 
-        currEntityLocalPath = pf.findPath(srcXTile, srcYTile, tarNode[0], tarNode[1], grid);
-      }
+          var grid = this.pfGrid.clone();
+          var pf = this.pathfinder;
+        
+          var srcXTile = Math.round((e.data[0]-32/2)/32);
+          var srcYTile = Math.round((e.data[1]-32/2)/32);
 
-      currEntity.frames.push({
-        x:e.data[0],// + (Math.random()*300),
-        y:e.data[1],// + (Math.random()*300),
-        r:e.data[2],
-        seenBy: currEntitySeenByArr,
-        path: currEntityLocalPath,
-        t:lerpTargetTime + lerpPlusLatency,
-        tick: e.tick + this.entityLerpTick
-      });
+          currEntityLocalPath = pf.findPath(srcXTile, srcYTile, tarNode[0], tarNode[1], grid);
+        }
 
-      $('#t-value').text(this.entities[0].frames.length);
+        currEntity.frames.push({
+          x:e.data[0],// + (Math.random()*300),
+          y:e.data[1],// + (Math.random()*300),
+          r:e.data[2],
+          seenBy: currEntitySeenByArr,
+          path: currEntityLocalPath,
+          t:lerpTargetTime + lerpPlusLatency,
+          tick: e.tick + this.entityLerpTick
+        });
 
-      if(currEntity.frames.length >= this.maxEntityFrames) {
-          currEntity.frames.splice(0,1);
+        if(currEntity.frames.length >= this.maxEntityFrames) {
+            currEntity.frames.splice(0,1);
+        }
       }
     },
 
@@ -136,14 +138,24 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
         owner: owner,
         manager: this
       };
-      this.entities.push(new Entity(this.pGame, config));
+      this.entities[data[3]] = new Entity(this.pGame, config);
+      // this.entities.push(new Entity(this.pGame, config));
+    },
+
+    removeEnitity: function(e){
+      console.log(e);
+      var entity = this.entities[e.data[0]];
+      entity.remove();
+      this.entities[e.data[0]] = null;
     },
 
     process: function(){
 
       for (var i = 0; i < this.entities.length; i++) {
         var currEntity = this.entities[i];
-        currEntity.update();
+        if(currEntity!= null){
+          currEntity.update();
+        }
       };
 
       this.updateFogMask();
@@ -172,7 +184,10 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
 
     processRender: function(){
       for (var i = 0; i < this.entities.length; i++) {
-        this.entities[i].draw();
+        var currEntity = this.entities[i];
+        if(currEntity!= null){
+          currEntity.draw();
+        }
       };
     },
 
