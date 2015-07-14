@@ -144,7 +144,7 @@ EntitySystem.prototype.update = function () {
 			var entityXBlocking = Math.round((currEntity.body.position[0]-16)/this.map.tileWidth);
 			var entityYBlocking = Math.round((currEntity.body.position[1]-16)/this.map.tileHeight);
 			// this.pfGrid.setWalkableAt(entityXBlocking, entityYBlocking,	!currEntity.blocking);
-			currEntity.update();
+			currEntity.update(this.physics.lastTimeStep);
 		}
 	}
 

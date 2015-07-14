@@ -78,13 +78,13 @@ Entity.prototype.addAbilityCommand = function (data) {
 };
 
 
-Entity.prototype.update = function () {
+Entity.prototype.update = function (time) {
   // if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
     this.stateChanged = true;
   // }
 
   //movement
-  this.movement.process();
+  this.movement.process(time);
   
   //abilities
   var abilityData;

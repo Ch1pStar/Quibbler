@@ -1,3 +1,6 @@
+var BasicArrive = require('./steering/basic_tmp.js');
+var Vec2 = require('../../../lib/vectormath.js');
+
 function GroundMovement(entity){
 
   this.entity = entity;
@@ -8,48 +11,40 @@ function GroundMovement(entity){
   this.currPathNodeIndex = 0;
   this.pathRadius = 5;
   
-  this.target = null;
+  // this.target = null;
   this.speed = 5;
+
+
+  //steering stuff
+  this.steeringBahavior = new BasicArrive(this, 
+    [this.entity.body.position[0],this.entity.body.position[1]]
+  );
+  this.steeringOutput = [[0,0],0];
+
+
+
+  this.maxSpeed = 200;
+  this.maxAcceleration = 200;
 }
 
+GroundMovement.prototype.applySteering = function(steering, time) {
+  
+  var vel = this.entity.body.velocity;
+  Vec2.scale(vel, time, vel);
+  Vec2.add(vel, steering[0], vel);
+  Vec2.limit(vel, this.maxSpeed, vel);
+};
 
-GroundMovement.prototype.process = function() {
 
+GroundMovement.prototype.process = function(time) {
+
+  this.steeringBahavior.calculateSteering(this.steeringOutput);
+
+  this.applySteering(this.steeringOutput, time);
+  console.log(this.entity.body.velocity);
+  // console.log(this.entity.manager.physics.lastTimeStep);
 
   this.getCurrentPathTarget();
-
-
-  if(this.target != null){
-
-    this.entity.body.force = [0,0];
-    this.entity.body.velocity = [0,0];
-    this.entity.body.angularVelocity = 0;
-    this.entity.body.angularForce = 0;
-
-
-    var tarX = (this.target[0]*32) + 16;
-    var tarY = (this.target[1]*32) + 16;
-
-    if(this.entity.body.position[0]<tarX){
-      this.entity.body.position[0]+=this.speed;
-    }else if(this.entity.body.position[0]>tarX){
-      this.entity.body.position[0]-=this.speed;  
-    }
-
-    if(this.entity.body.position[1]<tarY){
-      this.entity.body.position[1]+=this.speed;
-    }else if(this.entity.body.position[1]>tarY){
-      this.entity.body.position[1]-=this.speed;  
-    }
-
-    // this.entity.body.wakeUp();
-    // var speed = 100;
-    // var angle = Math.atan2(tarY - this.entity.body.position[1], tarX - this.entity.body.position[0]);
-    // this.entity.body.rotation = angle;
-    // this.entity.body.force[0] = Math.cos(angle) * speed;
-    // this.entity.body.force[1] = Math.sin(angle) * speed;
-
-  }
 
   this.computeMoveNextCommand();
   this.computePathForNextCommand();
@@ -85,8 +80,6 @@ GroundMovement.prototype.computePathForNextCommand = function () {
 
 };
 
-
-
 GroundMovement.prototype.getCurrentPathTarget = function () {
   this.target = null;
 
@@ -97,28 +90,20 @@ GroundMovement.prototype.getCurrentPathTarget = function () {
 
     this.target = this.path[this.currPathNodeIndex];
 
-    if (this.distance(this.target) <= this.pathRadius) {
-      this.currPathNodeIndex ++;
+    var tarX = (this.target[0]*32) + 16;
+    var tarY = (this.target[1]*32) + 16;
+    this.steeringBahavior.target = [tarX,tarY];
 
-      //Path destination is reached
-      if (this.currPathNodeIndex >= this.path.length) {
-        this.targetReached();
-      }
-    }
+    // if (this.distance(this.target) <= this.pathRadius) {
+    //   this.currPathNodeIndex ++;
+
+    //   //Path destination is reached
+    //   if (this.currPathNodeIndex >= this.path.length) {
+    //     this.targetReached();
+    //   }
+    // }
   }
 };
-
-GroundMovement.prototype.targetReached = function() {
-  this.currPathNodeIndex = 0;
-  this.path = [];
-  this.nextMoveOrder = null;
-
-  var tarX = (this.target[0]*32) + 16;
-  var tarY = (this.target[1]*32) + 16;
-  this.entity.body.position[0] = tarX;
-  this.entity.body.position[1] = tarY;
-};
-
 
 GroundMovement.prototype.distance = function (target) {
   var srcXTile = Math.round(this.entity.body.position[0]);
@@ -127,6 +112,14 @@ GroundMovement.prototype.distance = function (target) {
   var tarYTile = (target[1]*32)+32/2;
 
   return Math.sqrt((srcXTile - tarXTile) * (srcXTile - tarXTile)  + (srcYTile - tarYTile) * (srcYTile - tarYTile));
+};
+
+GroundMovement.prototype.getPosition = function() {
+  return this.entity.body.position;
+};
+
+GroundMovement.prototype.getVelocity = function() {
+  return this.entity.body.velocity;
 };
 
 module.exports = GroundMovement;
