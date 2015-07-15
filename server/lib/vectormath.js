@@ -19,6 +19,9 @@ Vec2.scale = function(a, v, out) {
 }
 
 Vec2.normalize = function(a, out) {
+    if(a[0]==0 && a[1]==0){
+        return;
+    }
     var iLen = 1 / Vec2.len(a);
     out[0] = a[0] * iLen;
     out[1] = a[1] * iLen;
