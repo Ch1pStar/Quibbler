@@ -46,7 +46,7 @@ function Entity(config){
 
   this.stateChanged = false;
 
-  this.movement = new GroundMovement(this);
+  this.movement = new GroundMovement(this, 'fp');
 
 
 }
@@ -129,12 +129,13 @@ Entity.prototype.getNetworkAttributes = function () {
     res.push(this.seenBy[j]);
   };
 
-  if(this.movement.path.length>0){
+  var path = this.movement.getTilePath();
+  if(path.length>0){
     res.push(1);
 
-    var lastPathIndex = this.movement.path.length-1;
-    for (var i = 0; i < this.movement.path[lastPathIndex].length; i++) {
-      res.push(this.movement.path[lastPathIndex][i]);
+    var lastPathIndex = path.length-1;
+    for (var i = 0; i < path[lastPathIndex].length; i++) {
+      res.push(path[lastPathIndex][i]);
     }
   }
   res.unshift(res.length);
