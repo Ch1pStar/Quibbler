@@ -6,7 +6,7 @@
 function MessageQueue(size){
   // Default size if not specified
   if(typeof size == 'undefined'){
-    size = 100;
+    size = 500;
   }
   if(typeof size !== 'number'){
     throw new Error("'"+size.toString()+ "' is not a valid size!");
@@ -24,7 +24,6 @@ function MessageQueue(size){
  * @param  {Object}
  */
 MessageQueue.prototype.push = function(message) {
-
   this._data[this._tail] = message;
   this._tail = (this._tail + 1) % this._size;
   if (this._tail == this._head){
