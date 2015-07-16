@@ -15,7 +15,7 @@ function BasicArrive (movement, target) {
 }
 
 
-//Steering Behaviors implement the basic steering class
+//Steering Behaviors implements the basic steering class
 BasicArrive.prototype = new BaseSteering();
 
 BasicArrive.prototype.calculateRealSteering = function(resultVector) {
@@ -34,20 +34,24 @@ BasicArrive.prototype.arrive = function(resultVector, targetPosition) {
 
   // Check if we are there, return no steering
   if(distance <= this.arrivalTolerance){
+    
+
     //tmp
     this.movement.currPathNodeIndex ++;
-   
     //Path destination is reached
     if (this.movement.currPathNodeIndex >= this.movement.path.length) {
       this.movement.nextMoveOrder = null;
       this.movement.currPathNodeIndex = 0;
       this.movement.path = [];
+      this.movement.entity.body.velocity = [0,0];
     }
 
     return [[0,0],0];
   }
 
-  var targetSpeed = this.movement.maxSpeed;
+  var limiter = this.getActualLimiter();
+
+  var targetSpeed = limiter.maxSpeed;
 
   // If we are inside the slow down radius calculate a scaled speed
   if (distance <= this.decelerationRadius){
@@ -63,7 +67,7 @@ BasicArrive.prototype.arrive = function(resultVector, targetPosition) {
 
   Vec2.subtract(this.targetVelocity, this.movement.getVelocity(), this.targetVelocity);
   Vec2.scale(this.targetVelocity, (1.0/this.timeToTarget), this.targetVelocity);
-  Vec2.limit(this.targetVelocity, this.movement.maxAcceleration, this.targetVelocity);
+  Vec2.limit(this.targetVelocity, limiter.maxAcceleration, this.targetVelocity);
 
   resultVector[0] = this.targetVelocity
   // console.log(resultVector[0], this.targetVelocity);
