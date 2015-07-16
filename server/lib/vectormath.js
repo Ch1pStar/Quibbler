@@ -1,3 +1,6 @@
+/**
+ * 2d Vector Math Utils
+ */
 function Vec2(){};
 Vec2.create = function(a, b) {
     return new Float32Array([a, b]);
@@ -46,5 +49,15 @@ Vec2.len = function(a) {
 Vec2.len2 = function(a){
     return a[0] * a[0] + a[1] * a[1];
 }
+
+Vec2.prototype.vectorToAngle = function(a) {
+    return Math.atan2(-a[0], a[1]);
+};
+
+Vec2.prototype.angleToVector = function(angle, out) {
+    out[0] = Math.sin(angle);
+    out[1] = Math.cos(angle);
+};
+
 
 module.exports = Vec2;
