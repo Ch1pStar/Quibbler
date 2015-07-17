@@ -19,7 +19,6 @@ function EntitySystem(id, timestep, mapUrl, core) {
 
 	this.addMap(mapUrl);
 
-
 	this.pathfinder = new pf.AStarFinder({
 		allowDiagonal: true,
 		dontCrossCorners: true
@@ -68,7 +67,7 @@ EntitySystem.prototype.moveCommandListener = function(e) {
   var yTile = Math.round( (e.data[1]-32/2) /32);
 
 	if(!this.pfGrid.isWalkableAt(xTile,yTile)){
-		//this should return an error later on
+		//TODO return an error later on
 		return;
 	}
 

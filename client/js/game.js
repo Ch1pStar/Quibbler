@@ -465,6 +465,14 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
         var abilityIndex = 2
         var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [0,0,abilityIndex]);
         this.inputBuffer.push(eventMessage);
+      }else if(e.keyCode == 72){
+        //clear current selection
+        for (var i = 0; i < this.entityManager.entities.length; i++) {
+          var ent = this.entityManager.entities[i];
+          if(ent !=null){
+            ent.setSelected(false);
+          }
+        };
       }else{
         // var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);
         // this.inputBuffer.push(eventMessage);
