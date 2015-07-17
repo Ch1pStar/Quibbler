@@ -17,7 +17,9 @@ define([], function(){
 
       this.visionRadius =  config.visionRadius;
 
-      var grphx = this.pGame.add.graphics(centerX, centerY);  //init rect
+      this.selected = false;
+
+      var grphx = this.pGame.add.graphics(0, 0);  //init rect
       grphx.lineStyle(1, this.owner.team.color, 1); // width, color // required settings
       grphx.beginFill(this.owner.team.color, .2) // color  // required settings
       // grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
@@ -25,10 +27,18 @@ define([], function(){
 
       grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 1);
       // grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 20);
+      
 
-      // this.t = grphx;
-      this.obj = grphx;
-      // this.obj = this.pGame.add.sprite(centerX, centerY, 'simple_tile');
+      var sprite = this.pGame.add.sprite(centerX, centerY);
+      sprite.addChild(grphx); 
+
+      sprite.inputEnabled = true;
+
+      sprite.events.onInputDown.add(this.onClick,this);
+
+      this.obj = sprite;
+      // this.obj = grphx;
+
 
       this.obj.rotation = config.r;
       this.obj.pivot.x = this.obj.width/2;
@@ -62,6 +72,20 @@ define([], function(){
 
     },
 
+    onClick: function(e,p){
+      console.log("Clicked on entity - %d",this.id);
+      if(this.selected){
+        this.setSelected(false);
+      }else{
+        this.setSelected(true);
+      }
+    },
+
+    setSelected: function(val){
+      this.selected = val;
+      this.manager.game.updateSelection();
+    },
+
     update: function(){
 
       // if(!this.obj.visible){
@@ -89,6 +113,7 @@ define([], function(){
     },
 
     remove: function(){
+      this.setSelected(false);
       this.obj.destroy();
 
       //maybe free entity resources aswell? who cares maybe later

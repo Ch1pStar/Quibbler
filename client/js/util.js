@@ -23,7 +23,8 @@ define({
     UNIT_MOVE: 30,
     UNIT_ATTACK: 31,
     UNIT_ABILITY: 32,
-    GLOBAL_ABILITY: 33
+    GLOBAL_ABILITY: 33,
+    SELECTION: 34
   }),
 
 

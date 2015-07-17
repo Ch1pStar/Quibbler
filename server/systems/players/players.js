@@ -28,6 +28,8 @@ function PlayerSystem(config) {
 
   this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY] = this.abilityCommandListener;
 
+  this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.SELECTION] = this.updatePlayerSelection;
+
 
 	this.wss = new WebSocketServer({port:this.outPort});
 
@@ -38,6 +40,17 @@ function PlayerSystem(config) {
 
 	this.startOutgoingMessageInterval();
 
+};
+
+PlayerSystem.prototype.updatePlayerSelection = function(e) {
+	var player = e.creator;
+	player.selection = [];
+	for (var i = 0; i < e.data.length; i++) {
+		var ent = this.core.es.entities[e.data[i]];
+		if(ent!= null){
+			player.selection.push(ent);
+		}
+	};
 };
 
 PlayerSystem.prototype.abilityCommandListener = function(e) {

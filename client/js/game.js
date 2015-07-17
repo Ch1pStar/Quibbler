@@ -149,7 +149,6 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
 
       this.existingPlayers = [];
       for (var i = 5; i < 5+data[4]; i++) {
-        console.log(data[i]);
         this.existingPlayers.push(data[i]);
       };
 
@@ -320,12 +319,36 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       this.tickCount++;
     },
 
+    updateSelection: function(){
+      var selection = [];
+
+      for(var e in this.entityManager.entities){
+        var ent = this.entityManager.entities[e];
+        if(ent!=null && ent.selected){
+          selection.push(ent.id);
+        }
+      }
+      selection.unshift(selection.length);
+      var e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.SELECTION, selection);
+      this.inputBuffer.push(e);
+    },
+
     /**
      * @private
      * Render method used to render game state
      */
     render: function(){
       $('#fps-tracker').text(this.game.time.fps);
+
+      var selectionVal = "";
+      for (var i = 0; i < this.entityManager.entities.length; i++) {
+        var ent = this.entityManager.entities[i];
+        if(ent != null && ent.selected){
+          selectionVal += ent.id +", ";
+        }
+      };
+
+      $('#selection-value').text(selectionVal);
 
 
       //This is broken, will not display proper time if the client is lagging(not running at 60 fps)
@@ -391,11 +414,11 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      */
     mouseClickHandler: function(pointer){
       // console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
-      console.log(pointer);
+      // console.log(pointer);
       var e;
       switch(pointer.button){
         case 0:
-          console.log("left click");
+          // console.log("left click");
           break;
         case 1:
           console.log("scroll click");

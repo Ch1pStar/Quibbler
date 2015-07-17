@@ -78,6 +78,7 @@ Player.prototype.onMessage = function(msg) {
     //Create an array of parsed commands(events) and broadcast them in order
 		var parsedInput = this.inputHandler.parseCommandBuffer(data.data);
 
+
     for(var i in parsedInput){
       var e = parsedInput[i];
       this.manager.eventBroadcast(e);

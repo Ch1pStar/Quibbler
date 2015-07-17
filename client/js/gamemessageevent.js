@@ -68,6 +68,6 @@ define([], function(){
 
     }
   };
-
+  console.log(this);
   return GameMessageEvent;
 });

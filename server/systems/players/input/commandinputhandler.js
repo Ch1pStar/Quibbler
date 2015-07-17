@@ -20,8 +20,16 @@ CommandInputHandler.prototype.parseCommandBuffer = function(data) {
     var action = data.shift();
     var commandLen = inputcfg[action];
     var commandData = [];
-    for(var a = 0; a < commandLen; a++){
-      commandData.push(data.shift());
+    //custom data length send with the command
+    if(commandLen == Infinity){
+      var dataLen = data.shift();
+      for (var a = 0; a < dataLen; a++) {
+        commandData.push(data.shift());
+      };
+    }else{
+      for(var a = 0; a < commandLen; a++){
+        commandData.push(data.shift());
+      }
     }
     var e = new Event(action, this.player, commandData);
     eventsArray.push(e);

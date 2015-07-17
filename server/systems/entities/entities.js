@@ -30,7 +30,12 @@ function EntitySystem(id, timestep, mapUrl, core) {
 		// e.canPropagate = false;
 		console.log("\tPlayer %d ordered unit %d to move to %d,%d", e.data.p.id, e.data.eId, e.data.x, e.data.y);
 		var entity = this.entities[e.data.eId];
-		entity.addMoveCommand([e.data.x,e.data.y, e.data.useQueue]);
+		
+		if(entity.controlledBy.indexOf(e.data.p.id) > -1){
+			entity.addMoveCommand([e.data.x,e.data.y, e.data.useQueue]);
+		}else{
+			console.log("\tPlayer %d cannot control unit %d, (Owners: %s)", e.data.p.id, entity.id, entity.controlledBy);
+		}
 	}
 
 	this.subscribedEvents[consts.EVENT_ENTITY_ACTION.SPAWN] = function(e){
@@ -46,21 +51,16 @@ function EntitySystem(id, timestep, mapUrl, core) {
 	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_ABILITY] = this.abilityCommandListener;
 	this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE] = this.moveCommandListener;
 	
-
-
 	this.addMapBounds();
 }
 
 	
 EntitySystem.prototype.abilityCommandListener = function(e) {
 	var player = e.creator;
-	player.selection = [];
-	player.selection.push(this.entities[0]);
 	player.highlightUnit = player.selection[0];
 
 	var currEntity = player.highlightUnit;
 	currEntity.addAbilityCommand(e.data);	
-
 };
 
 EntitySystem.prototype.moveCommandListener = function(e) {
@@ -73,15 +73,6 @@ EntitySystem.prototype.moveCommandListener = function(e) {
 	}
 
 	var player = e.creator;
-	player.selection = [];
-	// player.selection.push(this.entities[0]);
-	for (var i = 0; i < this.entities.length; i++) {
-		var currEntity = this.entities[i];
-		if(currEntity!=null){
-			player.selection.push(currEntity);
-		}
-	};
-
 	
 	for(var a  in player.selection){
 		
