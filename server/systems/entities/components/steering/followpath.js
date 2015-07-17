@@ -7,7 +7,7 @@ function FollowPath (movement) {
 
   this.currentPathNodeIndex = 0;
 
-  this.arrivalTolerance = 16;
+  this.arrivalTolerance = 2;
 
   this.idle = true;
 }
@@ -60,6 +60,7 @@ FollowPath.prototype.nextWayPoint = function() {
 };
 
 FollowPath.prototype.setPath = function(path) {
+  this.currentPathNodeIndex = 0;
   this.path = path;
 };
 

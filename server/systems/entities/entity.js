@@ -70,7 +70,8 @@ Entity.prototype.getAbilities = function() {
 
 Entity.prototype.addMoveCommand = function (data) {
   console.log("\t*** Adding move command to entity %d ***", this.id);
-  this.movement.moveOrders[0] = data;
+  this.movement.useQueue = data[2];
+  this.movement.moveOrders.push(data);
 };
 
 Entity.prototype.addAbilityCommand = function (data) {

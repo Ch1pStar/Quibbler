@@ -2,7 +2,7 @@ var consts = require('../../../lib/const.js');
 var config = {};
 
 //cursor xy
-config[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE] = 2;
+config[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE] = 3;
 
 // /cursor xy
 config[consts.EVENT_PLAYER_COMMAND.UNIT_ATTACK] = 2;

@@ -19,7 +19,7 @@ FindPathAI.prototype.move = function(time) {
 
 FindPathAI.prototype.findPathForTarget = function() {
   
-  if(this.steering.idle){
+  // if(this.steering.idle){
     var data = this.target;
 
     var grid = this.movement.entity.manager.pfGrid.clone();
@@ -45,7 +45,7 @@ FindPathAI.prototype.findPathForTarget = function() {
     };
 
     this.steering.setPath(resArr);
-  }
+  // }
 };
 
 

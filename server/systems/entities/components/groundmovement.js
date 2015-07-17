@@ -14,14 +14,16 @@ function GroundMovement(entity, movementAI){
   this.maxSpeed = 200;
   this.maxAcceleration = 200;
 
+  this.useQueue = false;
+
 
   //abomination of a factory
   //bleh
-  var aiTypes = {
+  this.aiTypes = {
     seek: SeekAI,
     fp: FindPathAI
   };
-  this.movementAI = new aiTypes[movementAI](this);
+  this.movementAI = new this.aiTypes[movementAI](this);
 
 }
 
@@ -33,16 +35,35 @@ GroundMovement.prototype.process = function(time) {
 
 
 GroundMovement.prototype.computeNextMoveCommand = function() {
-  if(this.moveOrders.length>0 && this.movementAI.steering.idle){
-    this.nextMoveOrder = this.moveOrders[0];
-    this.moveOrders = [];
+  if(this.moveOrders.length>0){
+    if(this.useQueue){
+      if(this.movementAI.steering.idle){
+        this.nextMoveOrder = this.moveOrders.shift();
+        var tarY = this.nextMoveOrder[1]+16;
+        var tarX = this.nextMoveOrder[0]+16;
+        this.movementAI.setTarget([tarX, tarY]);
+      }
+    }else{
+        this.nextMoveOrder = this.moveOrders[this.moveOrders.length-1];
+        var tarY = this.nextMoveOrder[1]+16;
+        var tarX = this.nextMoveOrder[0]+16;
+        this.movementAI.setTarget([tarX, tarY]);
+        this.moveOrders = [];
+    }
     
-    var tarY = this.nextMoveOrder[1]+16;
-    var tarX = this.nextMoveOrder[0]+16;
-    this.movementAI.setTarget([tarX, tarY]);
   }
 };
 
+
+//surely there is a better way to do this
+GroundMovement.prototype.changeMovementAI = function(movementAI) {
+  if(typeof this.aiTypes[movementAI] != 'undefined'){
+    console.log("chaning ai to - %s", movementAI);
+    this.movementAI = new this.aiTypes[movementAI](this);
+  }else{
+    console.err("Unsupported movementAI specified.");
+  }
+};
 
 GroundMovement.prototype.getPath = function() {
   

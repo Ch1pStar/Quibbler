@@ -30,7 +30,7 @@ function EntitySystem(id, timestep, mapUrl, core) {
 		// e.canPropagate = false;
 		console.log("\tPlayer %d ordered unit %d to move to %d,%d", e.data.p.id, e.data.eId, e.data.x, e.data.y);
 		var entity = this.entities[e.data.eId];
-		entity.addMoveCommand([e.data.x,e.data.y]);
+		entity.addMoveCommand([e.data.x,e.data.y, e.data.useQueue]);
 	}
 
 	this.subscribedEvents[consts.EVENT_ENTITY_ACTION.SPAWN] = function(e){
@@ -90,8 +90,9 @@ EntitySystem.prototype.moveCommandListener = function(e) {
 	    p: player,
 	    x: xTile*32,
 	    y: yTile*32,
+	    useQueue:e.data[2],
 	    eId: currEntity.id
-	  };
+	  }; 
 		
 		var moveEvent = new Event(consts.EVENT_ENTITY_ACTION.MOVE, this, data);
     this.eventBroadcast(moveEvent);
@@ -201,7 +202,6 @@ EntitySystem.prototype.removeEntity = function(eId) {
 	this.physics.removeBody(e.body);
 	// this.entities.splice(this.entities.indexOf(e),1);
 	var removeEvent = new Event(consts.EVENT_ENTITY_ACTION.REMOVE, {}, [1,eId]);
-	console.log(removeEvent);
 	this.core.ps.broadcastToPlayers(removeEvent);
 	this.entities[eId] = null;
 };

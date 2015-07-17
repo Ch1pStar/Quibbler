@@ -391,6 +391,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      */
     mouseClickHandler: function(pointer){
       // console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
+      console.log(pointer);
       var e;
       switch(pointer.button){
         case 0:
@@ -398,10 +399,12 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
           break;
         case 1:
           console.log("scroll click");
+          e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE, [pointer.x, pointer.y,1]);
+          this.inputBuffer.push(e);
           break;
         case 2:
           console.log("right click");
-          e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE, [pointer.x, pointer.y]);
+          e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE, [pointer.x, pointer.y,0]);
           this.inputBuffer.push(e);
           break;
       }
