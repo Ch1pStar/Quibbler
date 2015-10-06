@@ -36,6 +36,8 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
         }
       }
 
+      this.hoverEntity = -1;
+
     },
 
     setPlayingPlayer: function(player){
@@ -61,6 +63,19 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
         };
       };
 
+    },
+
+    showEntityPaths: function(val){
+      if(typeof val == 'undefined'){
+        val = true;
+      }
+
+      for(var i = 0; i<this.entities.length;i++){
+        var ent = this.entities[i];
+        if(ent != null && typeof ent != "undefined"){
+          ent.drawPath = val;
+        }
+      }
     },
 
     onEntityStateUpdate: function(e){
@@ -122,6 +137,10 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
             currEntity.frames.splice(0,1);
         }
       }
+    },
+
+    isEnemy: function(ent){
+      return this.playingPlayer.team.id != ent.owner.team.id;
     },
 
     createEntity: function(e){

@@ -292,7 +292,7 @@ define(['gamemessageevent', 'tcpconnectionfactory', 'util', 'lib/bison'],
           data.push(e.data[j]);
         };
       };
-      console.log(data);
+      // console.log(action, data);
       this._sendMessage(new GameMessageEvent(action, data));
     },
 

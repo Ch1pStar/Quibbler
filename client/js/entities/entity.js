@@ -21,20 +21,27 @@ define([], function(){
 
       var grphx = this.pGame.add.graphics(0, 0);  //init rect
       grphx.lineStyle(1, this.owner.team.color, 1); // width, color // required settings
-      grphx.beginFill(this.owner.team.color, .2) // color  // required settings
+      grphx.beginFill(this.owner.team.color, 0.5) // color  // required settings
       // grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
       grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, this.tileHeight); // x, y, width, height
 
       grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 1);
+      grphx.drawCircle(this.tileWidth/2, this.tileHeight, 10);
       // grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 20);
+      this.grphx = grphx;
       
 
       var sprite = this.pGame.add.sprite(centerX, centerY);
+      sprite.alpha = 0.4;
       sprite.addChild(grphx); 
 
       sprite.inputEnabled = true;
 
       sprite.events.onInputDown.add(this.onClick,this);
+      sprite.events.onInputOver.add(this.onOver,this);
+      sprite.events.onInputOut.add(this.onOut,this);
+
+
 
       this.obj = sprite;
       // this.obj = grphx;
@@ -69,11 +76,25 @@ define([], function(){
       // this.obj.addChild(visionAura);
 
       // this.pGame.physics.p2.enable(this.obj);
+      // 
+      this.drawPath = false;
+
+      this.hp = 100;
+
+      this.isEntity = true;
 
     },
 
     onClick: function(e,p){
       console.log("Clicked on entity - %d",this.id);
+      if(this.manager.game.selectedAbility != null){
+        this.manager.game.selectedAbility.call(this.manager.game, this);
+        console.log("non quickcast target ability");
+        this.manager.game.selectedAbility = null;
+        this.manager.game.setCursor('default');
+        return;
+      }
+
       if(this.selected){
         this.setSelected(false);
       }else{
@@ -81,13 +102,48 @@ define([], function(){
       }
     },
 
+    onOver: function(e,p){
+
+      this.prevCursor = this.manager.game.cursor;
+      var cursorStr = "";
+      if(this.manager.game.selectedAbility != null){
+        cursorStr = "attack_";
+      }else{
+        cursorStr = "default_";
+      }
+
+      if(this.manager.isEnemy(this)){
+        cursorStr += "enemy";
+      }else{
+        cursorStr += "team";
+      }
+      this.manager.game.setCursor(cursorStr);
+      this.obj.alpha = 1;
+      this.manager.hoverEntity = this.id;
+    },
+
+    onOut: function(e,p){
+      console.log(this.prevCursor);
+      this.manager.game.setCursor(this.prevCursor);
+      this.obj.alpha = .4;
+      this.manager.hoverEntity = -1;
+    },
+
     setSelected: function(val){
-      this.selected = val;
-      this.manager.game.updateSelection();
+      if(val != this.selected){
+        this.selected = val;
+        if(val){
+          this.grphx.tint = 0xff00ff;
+          this.obj.alpha = 0.8;
+        }else{
+          this.grphx.tint = 0xffffff;
+          this.obj.alpha = 0.4;
+        }
+        this.manager.game.updateSelection();
+      }
     },
 
     update: function(){
-
       // if(!this.obj.visible){
       //   return;
       // }
@@ -101,7 +157,19 @@ define([], function(){
 
     draw: function(){
       this.renderCalls++;
-
+     
+      // var p = this.pGame.input.mousePointer;
+      // var left = this.obj.x-this.obj.width/2;
+      // var right = this.obj.x+this.obj.width/2
+      // var top = this.obj.y-this.obj.height/2
+      // var bottom = this.obj.y+this.obj.height/2
+      // if(p.x >= left && p.x <= right && p.y >= top && p.y <= bottom){
+      //   // console.log(this.id);
+      //   this.manager.game.setCursor('default_team');
+      //   this.obj.alpha = 1;
+      // }else{
+      //   this.obj.alpha = .4;
+      // }
     },
 
     show: function(){
@@ -141,7 +209,7 @@ define([], function(){
       }
 
       if(!targetFrame) {
-        console.log("no frame or dropped packet");
+        // console.log("no frame or dropped packet");
         targetFrame = this.frames[this.frames.length - 1];
         previousFrame = this.frames[this.frames.length - 1];
       }
@@ -182,26 +250,29 @@ define([], function(){
         this.obj.rotation = this.lerp(targetPos.r, prevPos.r, timePoint);
 
         this.resolveVision(targetFrame);
-        // this.drawPath(targetFrame.path);
+        this.displayPath(targetFrame.path);
       }
 
     },
 
-    drawPath: function(path){
-      this.pathGraphics.removeAll();
-      for (var i = 0; i < path.length; i++) {
-        var pathNode = path[i];
+    displayPath: function(path){
+      if(this.drawPath){
 
-        var nodeX = (pathNode[0]*32);
-        var nodeY = (pathNode[1]*32);
+        this.pathGraphics.removeAll();
+        for (var i = 0; i < path.length; i++) {
+          var pathNode = path[i];
 
-        var grphx = this.pGame.add.graphics(nodeX, nodeY);  //init rect
-        grphx.lineStyle(1, 0x777777, 1); // width, color // required settings
-        grphx.beginFill(0xCCCCCC, .2) // color  // required settings
-        grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
+          var nodeX = (pathNode[0]*32);
+          var nodeY = (pathNode[1]*32);
 
-        this.pathGraphics.add(grphx);
-      };
+          var grphx = this.pGame.add.graphics(nodeX, nodeY);  //init rect
+          grphx.lineStyle(1, 0x777777, 1); // width, color // required settings
+          grphx.beginFill(0xCCCCCC, .2) // color  // required settings
+          grphx.drawRect(0, 0, this.tileWidth, this.tileHeight); // x, y, width, height
+
+          this.pathGraphics.add(grphx);
+        };
+      }
     },
 
     resolveVision: function(frame){

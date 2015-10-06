@@ -17,10 +17,10 @@ requirejs.config({
 define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
         'gamemessageevent','util','entities/entitymanager',
         'audio/audiomanager', 'tilemap', 'players/playermanager',
-        'eventdispatcher', 'lib/underscore-min',],
+        'eventdispatcher', '../assets/cursor/cursors.js', 'lib/underscore-min',],
       function($, Class, Phaser, GameClient, EventQueue,
                 GameMessageEvent, Util, EntityManager,
-                AudioManager, TileMap, PlayerManager, EventDispatcher) {
+                AudioManager, TileMap, PlayerManager, EventDispatcher, cursors) {
 
   /**
    * @public
@@ -33,7 +33,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     }else{
       //Default config options
       this.config = {
-        mapUrl: 'assets/zambies.json',
+        mapUrl: 'assets/zambiers.json',
         clientWindowWidth : 850,
         gameClientType: Util.GAME_CLIENT_TYPE.NETWORK_GAME, // 0 - network game, 1 - single player, 2 - replay
         gameClientSettings: {
@@ -62,8 +62,30 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
 
     this.playingPlayerId;
 
-    //Dev testing stuff, detele when done
-    this.cc = 0;
+    this.mouseDownHandlers = [this.leftClickDown, this.scrollClickDown, this.rightClickDown];
+    this.mouseUpHandlers = [this.leftClickUp, this.scrollClickUp, this.rightClickUp];
+
+
+    //s, a, c, v, h, z, down, right, up, left
+    // this.abilityBinds = [83, 65, 67, 86, 72, 40, 39, 38, 37];
+    this.abilities = [
+      { bind:83, a:this.spawn, quickCast: true},
+      { bind:65, a:this.attack, quickCast: false, cursor:'attack_default' },
+      { bind:67, a:this.clearAllEntities, quickCast: true},
+      { bind:86, a:this.clearSelectedEntities, quickCast: true},
+      { bind:72, a:this.clearCurrentSelection, quickCast: true},
+      { bind:90, a:this.testAbility, quickCast: true, cursor: 'attack_default'},
+      { bind:40, a:this.moveCameraDown, quickCast: true},
+      { bind:39, a:this.moveCameraRight, quickCast: true},
+      { bind:38, a:this.moveCameraUp, quickCast: true},
+      { bind:37, a:this.moveCameraLeft, quickCast: true},
+    ];
+
+    this.selectedAbility = null;
+
+    this.highlightUnit = null;
+
+    this.cursor = 'default';
 
     //Call after all properties are declared
     this.init();
@@ -76,18 +98,6 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * Creates the game world and starts the game loop
      */
     init: function(){
-      // var wWidth = $(window).width();
-      // var gameWidth = this.config.clientWindowWidth;
-      // if(wWidth < gameWidth){
-      //   gameWidth = wWidth - 50;
-      // }
-      // this.game = new Phaser.Game(gameWidth, 704, Phaser.AUTO, '', {
-      //   preload: this.caller(this.preload),
-      //   create: this.caller(this.create),
-      //   update: this.caller(this.update),
-      //   render: this.caller(this.render),
-      //   forceSetTimeOut: false
-      // });
 
       //Connect to game server after local client is initialized
       //and server event handlers are set
@@ -153,16 +163,22 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       };
 
       // var wWidth = $(window).width();
-      var gameWidth = 32*38;//tmp
+      // var gameWidth = 32*38;//tmp
       // var gameWidth = this.config.clientWindowWidth;
       // if(wWidth < gameWidth){
         // gameWidth = wWidth - 50;
       // }
 
-      var wHeight = $(window).height();
-      var gameHeight = 32*22;//tmp
+      // var wHeight = $(window).height();
+      // var gameHeight = 32*22;//tmp
 
-      this.game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, '', {
+      var gameWidth = window.innerWidth;
+      // var gameHeight = window.innerHeight;
+      var gameHeight = 720;
+      // console.log(gameWidth, gameHeight);
+      console.log(document.body.clientHeight);
+
+      this.game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, 'client-wrapper', {
         preload: this.caller(this.preload),
         create: this.caller(this.create),
         update: this.caller(this.update),
@@ -199,7 +215,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
 
 
       this.game.load.image('bg', 'assets/bg_tile.png');
-      this.game.load.image('road', 'assets/road_pattern.png');
+      this.game.load.image('road_pattern', 'assets/road_pattern.png');
       this.game.load.image('road_corners', 'assets/road_corners.png');
 
 
@@ -216,14 +232,14 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     create : function() {
       var game = this.game;
 
-      game.physics.startSystem(Phaser.Physics.P2JS);
+      // game.physics.startSystem(Phaser.Physics.P2JS);
 
       game.stage.backgroundColor = '#2d2d2d';
 
 
 
       this.map = new TileMap(game.add.tilemap('map'));
-      this.map.addResources();
+      // this.map.addResources();
 
 
       //  Set the tiles for collision.
@@ -237,9 +253,10 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       //  There is also a parameter to control optimising the map build.
       // var wallTiles = game.physics.p2.convertTilemap(this.map.pMap, walls);
 
-      game.physics.p2.setBoundsToWorld(true, true, true, true, false);
+      // game.physics.p2.setBoundsToWorld(true, true, true, true, false);
 
-      game.input.onDown.add(this.mouseClickHandler, this);
+      game.input.onUp.add(this.mouseUpClickHandler, this);
+      game.input.onDown.add(this.mouseDownClickHandler, this);
       game.input.keyboard.addCallbacks(this, this.keyboardDownHandler,
                       this.keyboardUpHandler, this.keyboardPressHandler);
 
@@ -247,13 +264,30 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       c.oncontextmenu = function(e){
           e.preventDefault();
       };
+      c.onselectstart = function(e){
+          e.preventDefault();
+      };
 
-      //add prevent default  for scroll click
+      this.setCursor(this.cursor);
+
+      //TODO add prevent default  for scroll click
 
       var highlightTile = this.game.add.graphics(0,0);
       highlightTile.lineStyle(1, 0x000000, 1); // width, color (0x0000FF), alpha (0 -> 1) // required settings
       highlightTile.drawRect(0, 0, 32, 32); // x, y, width, height
       this.highlightTile = highlightTile;
+
+
+      //tmp
+      this.highlightTile.visible = false;
+      this.showHightlightTile = false;
+
+
+      var selectionRekt = this.game.add.graphics(0,0);
+      selectionRekt.lineStyle(1, 0x118811,1);
+      selectionRekt.drawRect(0,0,1,1);
+      selectionRekt.alpha = .3;
+      this.selectionRekt = selectionRekt;
 
       this.initGameSystems();
     },
@@ -341,10 +375,15 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       $('#fps-tracker').text(this.game.time.fps);
 
       var selectionVal = "";
+      this.highlightUnit = null;
       for (var i = 0; i < this.entityManager.entities.length; i++) {
         var ent = this.entityManager.entities[i];
         if(ent != null && ent.selected){
           selectionVal += ent.id +", ";
+          if(this.highlightUnit == null){
+            this.highlightUnit = ent;
+            $('#hp-value').text(this.highlightUnit.hp);
+          }
         }
       };
 
@@ -364,7 +403,9 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       }
       $('#conn-value').text(conStatus);
 
-
+      // if(this.cursor !='default'){
+      //   this.setCursor('default');
+      // }
 
       for (var i = 0; i < this.gameSystems.length; i++) {
         this.gameSystems[i].processRender();
@@ -395,6 +436,9 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       this.highlightTile.x = xTile*32;
       this.highlightTile.y = yTile*32;
 
+      this.drawSelectionRect();
+      this.updateCameraDrag();
+
       // console.log(this.serverUpdateInterval);
       if(this.tickCount%this.serverUpdateInterval == 0){
         this.sendUserInput();
@@ -408,29 +452,136 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       }
     },
 
+    drawSelectionRect: function(){
+      if(this.selectionDrag){
+        var pointer = this.game.input.mousePointer;
+        var distanceV = [this.selectionRekt.x-pointer.x, this.selectionRekt.y-pointer.y];
+
+        this.selectionRekt.scale.x = (-distanceV[0])*.5;
+        this.selectionRekt.scale.y = (-distanceV[1])*.5;
+
+        this.updateDragSelection();
+      }
+    },
+
+    updateDragSelection: function(){
+
+      //TODO - FIX, only down right selection works
+      var slct = this.selectionRekt;
+
+      for (var i = 0; i < this.entityManager.entities.length; i++) {
+        var ent = this.entityManager.entities[i];
+        if(ent!=null){ 
+          var left = slct.x
+          var right = (slct.x+slct.width*2);
+          var top = slct.y;
+          var bottom = (slct.y+slct.height*2);
+
+          if(ent.owner.id == this.playingPlayerId && Phaser.Rectangle.intersectsRaw(ent.obj.getBounds(), left, right, top, bottom)) {
+            ent.setSelected(true);
+          }else{
+            ent.setSelected(false);
+          }
+        }
+      };
+
+    },
+
+    updateCameraDrag: function(){
+      if(this.cameraDrag){
+        this.game.camera.x = this.game.input.mousePointer.x;
+        this.game.camera.y = this.game.input.mousePointer.y;
+        console.log("camera is being dragged");
+      }
+    },
+
+    leftClickDown: function(pointer){
+      //if we're trying to use an ability, disable selection
+      if(this.selectedAbility != null){
+        return;
+      }
+      // console.log("begin selection at %d,%d", pointer.x,pointer.y);
+      this.selectionDrag = true;
+      this.selectionRekt.x = pointer.x;
+      this.selectionRekt.y = pointer.y;
+
+      this.selectionRekt.visible = true;
+
+      //hide highlight tile
+      if(this.showHightlightTile){
+        this.highlightTile.visible = false;
+      }
+    },
+
+    leftClickUp: function(pointer){
+      if(this.selectedAbility != null){
+        console.log("non quick cast");
+        this.selectedAbility.call(this, pointer);
+        this.selectedAbility = null;
+        this.setCursor('default');
+      }
+      if(this.selectionDrag){
+        this.selectionDrag = false;
+        this.selectionRekt.x = 0;
+        this.selectionRekt.y = 0;
+        this.selectionRekt.visible = false;
+        
+
+        //show highlight tile
+        if(this.showHightlightTile){
+          this.highlightTile.visible = true;
+        }
+        // console.log("end drag at %d,%d", pointer.x, pointer.y);
+      }
+      console.log("left click");
+    },
+
+    scrollClickDown: function(pointer){
+      // console.log("begin camera drag");
+      // this.cameraDrag = true;
+      
+
+      // this.game.camera.follow(this.highlightTile);
+    },
+
+    scrollClickUp: function(pointer){
+      // `("end camera drag");
+      // this.cameraDrag = false;
+      
+
+      // this.game.camera.unfollow(this.highlightTile);
+
+      // console.log("scroll click");
+      // console.log(this.game.camera.x);
+
+      // //send queued move command
+      // var e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE, [pointer.x, pointer.y,1]);
+      // this.inputBuffer.push(e);
+    },
+
+    rightClickDown: function(pointer){
+
+    },
+
+    rightClickUp: function(pointer){
+      console.log("right click");
+      //move command
+      var abilityIndex = 1;
+      this.sendGroundAbilityCommand(this.game.input.mousePointer.x, this.game.input.mousePointer.x, abilityIndex);
+      // var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_ABILITY, [this.game.input.mousePointer.x, this.game.input.mousePointer.y, abilityIndex]);
+      // this.inputBuffer.push(eventMessage);
+    },
+
+    mouseDownClickHandler: function(pointer){
+      this.mouseDownHandlers[pointer.button].call(this, pointer);
+    },
+
     /**
      * Mouse click handler
      * @param  {Phaser.MousePointer} pointer The MousePointer object
      */
-    mouseClickHandler: function(pointer){
-      // console.log("Mouse click at: %s, %s", pointer.x, pointer.y);
-      // console.log(pointer);
-      var e;
-      switch(pointer.button){
-        case 0:
-          // console.log("left click");
-          break;
-        case 1:
-          console.log("scroll click");
-          e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE, [pointer.x, pointer.y,1]);
-          this.inputBuffer.push(e);
-          break;
-        case 2:
-          console.log("right click");
-          e = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_MOVE, [pointer.x, pointer.y,0]);
-          this.inputBuffer.push(e);
-          break;
-      }
+    mouseUpClickHandler: function(pointer){
+      this.mouseUpHandlers[pointer.button].call(this, pointer);
     },
 
     /**
@@ -447,41 +598,122 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      */
     keyboardUpHandler: function(e){
       console.log(e.keyCode);
-      if(e.keyCode == 83){ // s
-        var abilityIndex = 1;
-        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
-        this.inputBuffer.push(eventMessage);
-      }else if(e.keyCode == 65){ // a
-        var abilityIndex = 0;
-        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_ABILITY, [this.highlightTile.x, this.highlightTile.y, abilityIndex]);
-        this.inputBuffer.push(eventMessage);
-      }else if(e.keyCode == 67){ // c
-        //clear all entities
-        var abilityIndex = 0
-        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [0,0,abilityIndex]);
-        this.inputBuffer.push(eventMessage);
-      }else if(e.keyCode == 86){ // v
-        //clear selected entities
-        var abilityIndex = 2
-        var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [0,0,abilityIndex]);
-        this.inputBuffer.push(eventMessage);
-      }else if(e.keyCode == 72){
-        //clear current selection
-        for (var i = 0; i < this.entityManager.entities.length; i++) {
-          var ent = this.entityManager.entities[i];
-          if(ent !=null){
-            ent.setSelected(false);
+      for (var i = 0; i < this.abilities.length; i++) {
+        if(e.keyCode == this.abilities[i].bind){
+          var ab = this.abilities[i];
+          if(ab.quickCast){
+            ab.a.call(this, this.game.input.mousePointer);
+          }else{
+            if(!ab.cursor) ab.cursor = "default";
+            this.setCursor(ab.cursor);
+            this.selectedAbility = ab.a;
           }
-        };
-      }else{
-        // var eventMessage = new GameMessageEvent(Util.EVENT_INPUT.KEYBOARD_KEYPRESS, [e.keyCode]);
-        // this.inputBuffer.push(eventMessage);
-      }
+        }
+      };
     },
 
     keyboardPressHandler: function(keyAsChar){
 
     },
+
+    spawn: function(target){
+      var abilityIndex = 1;
+      this.sendGlobalAbilityCommand(this.highlightTile.x, this.highlightTile.y, abilityIndex);
+    },
+
+    attack: function(target){
+      var abilityIndex = 0;
+      this.sendAbilityCommand(abilityIndex);
+    },
+
+    testAbility: function(pointer){
+      var abilityIndex = 1;
+      this.sendAbilityCommand(abilityIndex);
+    },
+
+    clearAllEntities: function(){
+      var abilityIndex = 0
+      this.sendGlobalAbilityCommand(0,0,abilityIndex);
+    },
+
+    clearSelectedEntities: function(){
+      var abilityIndex = 2
+      this.sendGlobalAbilityCommand(0,0,abilityIndex);
+    },
+
+    clearCurrentSelection: function(){
+      //clear current selection
+      for (var i = 0; i < this.entityManager.entities.length; i++) {
+        var ent = this.entityManager.entities[i];
+        if(ent !=null){
+          ent.setSelected(false);
+        }
+      };
+    },
+
+    sendAbilityCommand: function(abilityIndex){
+      if(this.entityManager.hoverEntity != -1){
+        this.sendTargetAbilityCommand(this.entityManager.hoverEntity, abilityIndex);
+      }else{      
+        this.sendGroundAbilityCommand(this.game.input.mousePointer.x, this.game.input.mousePointer.y, abilityIndex);
+      }
+    },
+
+    sendGroundAbilityCommand: function(x,y, index, useQueue){
+      if(typeof index == "undefined"){
+        console.error("Invalid ability index");
+        return;
+      }
+      if(typeof useQueue == "undefined") useQueue = 0;
+      var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_GROUND_ABILITY, [x,y,index,useQueue]);
+      this.inputBuffer.push(eventMessage);
+    },
+
+    sendTargetAbilityCommand: function(targetId, index, useQueue){
+      if(typeof index == "undefined"){
+        console.error("Invalid ability index");
+        return;
+      }
+      if(typeof useQueue == "undefined") useQueue = 0;
+      var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_TARGET_ABILITY, [targetId, index, useQueue]);
+      this.inputBuffer.push(eventMessage);
+    },
+
+    sendGlobalAbilityCommand: function(x,y, index){
+      if(typeof index == "undefined"){
+        console.error("Invalid ability index");
+        return;
+      }
+      if(!x)x=0; if(!y)y=0;
+      var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY, [x,y, index]);
+      this.inputBuffer.push(eventMessage);
+    },
+
+    moveCameraDown: function(){
+      this.game.camera.y +=14;
+    },
+
+    moveCameraUp: function(){
+      this.game.camera.y -=14;
+    },
+
+    moveCameraLeft: function(){
+
+      this.game.camera.x -=14;
+    },
+
+    moveCameraRight: function(){
+
+      this.game.camera.x +=14;
+    },
+
+    setCursor: function(state){
+      // this.game.canvas.style.cursor = "url('../assets/cursor/"+cursors[state]+"'), default";
+      this.game.canvas.parentElement.style.setProperty('cursor', "url('../assets/cursor/"+cursors[state]+"'), default", 'important');
+      this.cursor = state;
+    },
+
+
 
     audioManagerEventHandler: function(e){
       console.log(e);
