@@ -5,6 +5,8 @@ function TrainUnit(entity) {
   this.name = "train-unit";
 
   this.entity = entity;
+  this.subscribedEvents = {};
+
 
   this.trainTimeMs = 1000;
 
@@ -26,6 +28,15 @@ TrainUnit.prototype.trainFinished = function(data) {
   });
   this.entity.manager.eventBroadcast(e);
 
+};
+
+TrainUnit.prototype.destroy = function() {
+  
+};
+
+
+TrainUnit.prototype.getSubscribedEvents = function() {
+  return this.subscribedEvents;
 };
 
 module.exports = TrainUnit;

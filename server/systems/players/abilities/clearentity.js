@@ -6,10 +6,11 @@ function ClearEntity (player) {
 ClearEntity.prototype.run = function() {
   console.log("Used ability - %s at %d", this.name, this.player.manager.core.tick);
 
-  var entities = this.player.manager.core.es.getActiveEntities();
-  console.log(entities);
-  if(entities.length>0){
-    this.player.manager.core.es.removeEntity(entities[0].id);
+  if(this.player.selection.length>0){
+    for (var i = 0; i < this.player.selection.length; i++) {
+      var ent = this.player.selection[i];
+      this.player.manager.core.es.removeEntity(ent.id);
+    };
   }
 };
 

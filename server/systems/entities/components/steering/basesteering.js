@@ -13,7 +13,8 @@ function BaseSteering(movement) {
 }
 
 BaseSteering.prototype.calculateSteering = function(resultVector) {
-  return this.enabled?this.calculateRealSteering(resultVector):[];  
+  var a = this.enabled?this.calculateRealSteering(resultVector):[];
+  return a;
 };
 
 BaseSteering.prototype.calculateRealSteering = function(resultVector) {

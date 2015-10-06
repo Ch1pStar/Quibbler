@@ -8,11 +8,11 @@ function GroundMovement(entity, movementAI){
 
   this.entity = entity;
 
-  this.moveOrders = [];
-  this.nextMoveOrder = null;
+  this.target = null;
 
   this.maxSpeed = 200;
   this.maxAcceleration = 200;
+  this.maxAngularSpeed = 8;
 
   this.useQueue = false;
 
@@ -25,35 +25,42 @@ function GroundMovement(entity, movementAI){
   };
   this.movementAI = new this.aiTypes[movementAI](this);
 
+  this.onTargetReached = {
+    ctx: null,
+    cb: null
+  };
+
 }
 
 GroundMovement.prototype.process = function(time) {
-  this.computeNextMoveCommand();
   this.movementAI.move(time); 
 };
 
+GroundMovement.prototype.setTarget = function(position, ctx, cb) {
 
+  var mapTileHeight = this.entity.manager.map.tileHeight;
+  var mapTileWidth = this.entity.manager.map.tileWidth;
 
-GroundMovement.prototype.computeNextMoveCommand = function() {
-  if(this.moveOrders.length>0){
-    if(this.useQueue){
-      if(this.movementAI.steering.idle){
-        this.nextMoveOrder = this.moveOrders.shift();
-        var tarY = this.nextMoveOrder[1]+16;
-        var tarX = this.nextMoveOrder[0]+16;
-        this.movementAI.setTarget([tarX, tarY]);
-      }
-    }else{
-        this.nextMoveOrder = this.moveOrders[this.moveOrders.length-1];
-        var tarY = this.nextMoveOrder[1]+16;
-        var tarX = this.nextMoveOrder[0]+16;
-        this.movementAI.setTarget([tarX, tarY]);
-        this.moveOrders = [];
-    }
-    
+  //find the closest tile for PF
+  var xTile = Math.round( (position[0]-mapTileWidth/2) /mapTileWidth);
+  var yTile = Math.round( (position[1]-mapTileHeight/2) /mapTileHeight);
+
+  var xTileX = xTile*mapTileWidth;
+  var yTileY= yTile*mapTileHeight;
+
+  var xTileOffset = position[0] - xTileX;
+  var yTileOffset = position[1] - yTileY;
+  if(!this.entity.manager.pfGrid.isWalkableAt(xTile,yTile)){
+    //TODO return an error later on
+    return;
   }
-};
 
+  var tarY = yTileY+mapTileWidth/2;
+  var tarX = xTileX+mapTileHeight/2;
+  this.movementAI.setTarget([tarX, tarY, xTileOffset, yTileOffset]);
+  this.onTargetReached.ctx = ctx;
+  this.onTargetReached.cb = cb;
+};
 
 //surely there is a better way to do this
 GroundMovement.prototype.changeMovementAI = function(movementAI) {
@@ -75,12 +82,16 @@ GroundMovement.prototype.getPath = function() {
 
 
 GroundMovement.prototype.getTilePath = function() {
+  var mapTileHeight = this.entity.manager.map.tileHeight;
+  var mapTileWidth = this.entity.manager.map.tileWidth;
+
+
   var path = this.getPath();
   var res = [];
   for (var i = 0; i < path.length; i++) {
     var node = path[i];
-    var srcXTile = Math.round((node[0]-32/2)/32);
-    var srcYTile = Math.round((node[1]-32/2)/32);
+    var srcXTile = Math.round((node[0]-mapTileHeight/2)/mapTileHeight);
+    var srcYTile = Math.round((node[1]-mapTileWidth/2)/mapTileWidth);
     res.push([srcXTile, srcYTile]);
   };
   return res;
@@ -94,6 +105,14 @@ GroundMovement.prototype.getPosition = function() {
 
 GroundMovement.prototype.getVelocity = function() {
   return this.entity.body.velocity;
+};
+
+GroundMovement.prototype.getAngularVelocity = function() {
+  return this.entity.body.angularVelocity;
+};
+
+GroundMovement.prototype.getAngle = function() {
+  return this.entity.body.angle;
 };
 
 module.exports = GroundMovement;

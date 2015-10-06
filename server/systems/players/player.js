@@ -128,7 +128,6 @@ Player.prototype.parseMessage = function (msg) {
       }
     }
     msgObj = new Event(msg.readInt8(0),{}, data);
-
     return msgObj;
   }catch(e){
     console.error("Error parsing client message");

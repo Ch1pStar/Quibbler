@@ -40,9 +40,28 @@ AIPlayer.prototype.listenStdin = function () {
         parsedData.shift();
         self.spawnOrder(parsedData);
       }else if(data[0] == 'info'){
-        console.log(self.manager.core.es.entities[data[1]].body);
+        if(data[2]){
+          try{
+            console.log(self.manager.core.es.entities[data[1]][data[2]]);
+          }catch(e){
+            console.error("Invalid entity id: \"%s\"", data[1]);
+          }
+        }else{
+          console.log("Usage: info <entity id> <property>");
+          if(data[1]){
+            console.log("Available properties:");
+            for(var prop in self.manager.core.es.entities[data[1]]){
+              if(typeof prop != 'function'){
+               console.log("\t",prop);
+              }
+            }  
+          }
+        }
       }else if(data[0] == 'pinfo'){
         console.log(self.manager.players.length);
+      }else if(data[0] == 'shutdown'){
+        console.log("Shutting down server...");
+        process.exit(0);
       }
     }
   });

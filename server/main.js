@@ -2,7 +2,7 @@ var fs = require('fs');
 var Core = require('./core.js');
 
 
-var c;
+c = {};
 main();
 
 function main() {
@@ -17,13 +17,12 @@ function main() {
 }
 
 function getConfigFile(path, callback) {
-    fs.readFile(path, 'utf8', function(err, json_string) {
-        if(err){
-          console.error("Could not open config file:", err.path);
-          callback(null);
-        } else{
-          callback(JSON.parse(json_string));
-        }
-    });
-
+  fs.readFile(path, 'utf8', function(err, json_string) {
+      if(err){
+        console.error("Could not open config file:", err.path);
+        callback(null);
+      } else{
+        callback(JSON.parse(json_string));
+      }
+  });
 }

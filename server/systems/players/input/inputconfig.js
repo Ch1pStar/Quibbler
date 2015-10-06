@@ -1,14 +1,11 @@
 var consts = require('../../../lib/const.js');
 var config = {};
 
-//cursor xy
-config[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE] = 3;
+//cursor xy, ability index, should we use queue
+config[consts.EVENT_PLAYER_COMMAND.UNIT_GROUND_ABILITY] = 4;
 
-// /cursor xy
-config[consts.EVENT_PLAYER_COMMAND.UNIT_ATTACK] = 2;
-
-//cursor xy and ability index
-config[consts.EVENT_PLAYER_COMMAND.UNIT_ABILITY] = 3;
+//target, ability index, should we use queue
+config[consts.EVENT_PLAYER_COMMAND.UNIT_TARGET_ABILITY] = 3;
 
 //ability index
 config[consts.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY] = 3;

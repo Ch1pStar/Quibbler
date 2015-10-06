@@ -1,12 +1,17 @@
 var Body = require('p2').Body;
 var Rectangle = require('p2').Rectangle;
 var Circle = require('p2').Circle;
-
+var Material = require('p2').Material;
+var Event = require('../../lib/event.js');
+var EventDispatcher = require('../../lib/eventdispatcher.js');
+var consts = require('../../lib/const.js');
 
 //Components
 var GroundMovement = require('./components/groundmovement');
 var MeleeAttack = require('./abilities/meleeattack');
 var TrainUnit = require('./abilities/trainunit');
+var TestAbility = require('./abilities/testability');
+var Health = require('./abilities/resources/health');
 
 function Entity(config){
 
@@ -16,24 +21,28 @@ function Entity(config){
     // angle: config.r
   });
 
+  this.defaultMaterial = config.defaultMaterial;
+  this.attackMaterial = config.attackMaterial;
+
   var shape = new Circle(config.width/2);
+  shape.material = this.defaultMaterial;
+
+  this.baseShape = shape;
 
   body.addShape(shape);
 
   this.body = body;
 
+
   this.id = config.id
   // this.id = this.body.id;
 
   this.manager = config.manager;
-  // this.x = config.x;
-  // this.y = config.y;
-  // this.r = config.r;
-
 
   this.owner = config.owner;
   this.visionRadius = config.visionRadius;
   this.seenBy = [];
+
   this.controlledBy = [this.owner.id];
 
   //attack is always first ability
@@ -47,17 +56,28 @@ function Entity(config){
   this.stateChanged = false;
 
   this.movement = new GroundMovement(this, 'fp');
+  this.path = [];
+
+  //Unit resources - health, mana etc
+  this.resources = [new Health(this, 100)];
 
 
+  this.abilityPool = {
+    "train-unit": TrainUnit,
+    "melee-attack": MeleeAttack,
+    "test-ability": TestAbility
+  };
+
+  this.eventDispatcher = this.manager.core.createEventDispatcher();
+  this.eventDispatcher.registerEventBroadcaster(this);
 }
 
-Entity.prototype.addAbility = function(name) {
-  if(name=="train-unit"){
-    this.abilities.push(new TrainUnit(this));
-  }
-  if(name=="melee-attack"){
-    this.abilities.push(new MeleeAttack(this));
-  }
+
+//only in JavaScript 4Head
+Entity.prototype.addAbility = function(name, args) {
+  var ability = new this.abilityPool[name](this, args);
+  this.abilities.push(ability);
+  this.eventDispatcher.registerEventListener(ability);
 };
 
 Entity.prototype.getAbilities = function() {
@@ -70,19 +90,28 @@ Entity.prototype.getAbilities = function() {
 
 Entity.prototype.addMoveCommand = function (data) {
   console.log("\t*** Adding move command to entity %d ***", this.id);
-  this.movement.useQueue = data[2];
+  this.movement.useQueue = data.useQueue;
   this.movement.moveOrders.push(data);
 };
 
 Entity.prototype.addAbilityCommand = function (data) {
-  this.abilityQueue[0] = data;
+  // this.abilityQueue[0] = data;
+  this.abilityQueue.push(data);
 };
 
 
 Entity.prototype.update = function (time) {
-  // if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
+  if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
     this.stateChanged = true;
-  // }
+    var posEvent = new Event(consts.EVENT_ENTITY_STATE_CHANGE.POSITION, this, {});
+    this.eventBroadcast(posEvent);
+  }
+
+  if(this.body.previousAngle != this.body.angle){
+    this.stateChanged = true;
+    var posEvent = new Event(consts.EVENT_ENTITY_STATE_CHANGE.ORIENTATION, this, {});
+    this.eventBroadcast(posEvent);
+  }
 
   //movement
   this.movement.process(time);
@@ -91,16 +120,19 @@ Entity.prototype.update = function (time) {
   var abilityData;
   while(typeof(abilityData=this.abilityQueue.shift())!='undefined'){
     try{
-      var ability = this.abilities[abilityData[2]];
+      var ability = this.abilities[abilityData.index];
       ability.run(abilityData);
     }catch(e){
-      console.log("Invalid ability used - %d", abilityData[2]);
+      console.error(e);
+      // console.log("Invalid ability used - %d", abilityData[2]);
     }
   }
-  
-
   //vision
   this.resolveSeenBy();
+
+
+  //events
+  this.eventDispatcher.handleEventQueue();
 };
 
 Entity.prototype.resolveSeenBy = function() {
@@ -111,6 +143,14 @@ Entity.prototype.resolveSeenBy = function() {
       this.seenBy.push(this.manager.core.ps.players[p].id);
     }
   }
+};
+
+Entity.prototype.setDefaultMaterial = function() {
+  this.baseShape.material = this.defaultMaterial;
+};
+
+Entity.prototype.setAttackMaterial = function() {
+  this.baseShape.material = this.attackMaterial;
 };
 
 Entity.prototype.getNetworkAttributes = function () {
@@ -130,7 +170,7 @@ Entity.prototype.getNetworkAttributes = function () {
     res.push(this.seenBy[j]);
   };
 
-  var path = this.movement.getTilePath();
+  var path = this.path;
   if(path.length>0){
     res.push(1);
 
@@ -156,5 +196,16 @@ Entity.prototype.getInitialNetworkAttributes = function () {
   return res;
 };
 
+
+Entity.prototype.cleanAbilities = function() {
+  for (var i = 0; i < this.abilities.length; i++) {
+    this.abilities[i].destroy();
+  };
+};
+
+
+Entity.prototype.setEventBroadcast = function(cb) {
+  this.eventBroadcast = cb;
+};
 
 module.exports = Entity;

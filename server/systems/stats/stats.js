@@ -1,18 +1,20 @@
 // var Event = require('../../lib/event.js');
 var consts = require('../../lib/const.js');
 
-function StatSystem(id) {
-	this.id = id;
+function StatSystem(config) {
+	this.id = config.id;
 	this.name = 'stat-system';
-	this.subscribedEvents = {};
+  this.coreEDId = config.eventDispatcherId;
+  this.subscribedEvents = {};
+  this.subscribedEvents[this.coreEDId] = {};
 
-	this.subscribedEvents[consts.EVENT_ACTION.PLAYER_CONNECTED] = this.defaultEventHandler;
+	this.subscribedEvents[this.coreEDId][consts.EVENT_ACTION.PLAYER_CONNECTED] = this.defaultEventHandler;
 
-	this.subscribedEvents[consts.EVENT_ACTION.PLAYER_DISCONNECTED] = this.defaultEventHandler;
+	this.subscribedEvents[this.coreEDId][consts.EVENT_ACTION.PLAYER_DISCONNECTED] = this.defaultEventHandler;
 
-	this.subscribedEvents[consts.EVENT_ACTION.PRODUCE] = this.defaultEventHandler;
+	this.subscribedEvents[this.coreEDId][consts.EVENT_ACTION.PRODUCE] = this.defaultEventHandler;
 
-	this.subscribedEvents[consts.EVENT_ACTION.AI_PLAYER_ADDED] = this.defaultEventHandler;
+	this.subscribedEvents[this.coreEDId][consts.EVENT_ACTION.AI_PLAYER_ADDED] = this.defaultEventHandler;
 
 	// this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_MOVE] = this.defaultEventHandler;
 	// this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.UNIT_ATTACK] = this.defaultEventHandler;
@@ -30,8 +32,8 @@ StatSystem.prototype.setEventBroadcast = function(cb) {
 	this.eventBroadcast = cb;
 };
 
-StatSystem.prototype.getSubscribedEvents = function() {
-	return this.subscribedEvents;
+StatSystem.prototype.getSubscribedEvents = function(id) {
+	return this.subscribedEvents[id];
 };
 
 module.exports = StatSystem;

@@ -14,21 +14,23 @@ function PlayerSystem(config) {
 	this.outPort = config.port;
 	this.players = [];
 	this.pId = 0;
-	this.subscribedEvents = {};
+  this.coreEDId = this.core.eventDispatcher.id;
+  this.subscribedEvents = {};
+  this.subscribedEvents[this.coreEDId] = {};
 
-	this.subscribedEvents[consts.EVENT_ACTION.PRODUCE] = function(e){
+	this.subscribedEvents[this.coreEDId][consts.EVENT_ACTION.PRODUCE] = function(e){
 		e.canPropagate = false;
 		//TMP
 		this.broadcastToPlayers(e);
 	}
 
-	this.subscribedEvents[consts.EVENT_OUTGOING.FLUSH_PLAYER_MESSAGES] = function(e){
+	this.subscribedEvents[this.coreEDId][consts.EVENT_OUTGOING.FLUSH_PLAYER_MESSAGES] = function(e){
 		this.flushOutgoingPlayerMessages();
 	}
 
-  this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY] = this.abilityCommandListener;
+  this.subscribedEvents[this.coreEDId][consts.EVENT_PLAYER_COMMAND.GLOBAL_ABILITY] = this.abilityCommandListener;
 
-  this.subscribedEvents[consts.EVENT_PLAYER_COMMAND.SELECTION] = this.updatePlayerSelection;
+  this.subscribedEvents[this.coreEDId][consts.EVENT_PLAYER_COMMAND.SELECTION] = this.updatePlayerSelection;
 
 
 	this.wss = new WebSocketServer({port:this.outPort});
@@ -170,13 +172,12 @@ PlayerSystem.prototype.sendWelcomeMessageToPlayer = function (p) {
 
 PlayerSystem.prototype.setEventBroadcast = function(cb) {
 	this.eventBroadcast = cb;
-
 	//
 	this.addAI();
 };
 
-PlayerSystem.prototype.getSubscribedEvents = function() {
-	return this.subscribedEvents;
+PlayerSystem.prototype.getSubscribedEvents = function(id) {
+	return this.subscribedEvents[id];
 };
 
 module.exports = PlayerSystem;
