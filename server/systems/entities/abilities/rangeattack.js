@@ -2,14 +2,14 @@ var Event = require('../../../lib/event.js');
 var consts = require('../../../lib/const.js');
 var Vec2d = require('../../../lib/vectormath.js');
 
-function MeleeAttack (entity) {
+function RangeAttack (entity) {
   this.entity = entity;
-  this.name = "basic-melee-attack";
+  this.name = "basic-range-attack";
   this.unitTarget = -1;
   this.unitTargetEdId = -1;
 
-  this.attackRange = 50;
-  this.swingTime = 150; //ms
+  this.attackRange = 650;
+  this.swingTime = 1250; //ms
   this.backswingTime = 50; //ms
   this.attackSwingId = -1;
   this.attackDamage = 2;
@@ -29,17 +29,19 @@ function MeleeAttack (entity) {
   this.subscribedEvents[this.entity.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = this.selfPositionChange; 
 }
 
-MeleeAttack.prototype.selfPositionChange = function(e) {
+RangeAttack.prototype.selfPositionChange = function(e) {
   //cancel attack upon movement
   if(this.attackSwingId > -1){
     console.log("Unit moved and attack swing was interupted!");
     this.entity.manager.core.removeTimer(this.attackSwingId);
     this.attackSwingId = -1;
   }
+
   this.attemptSwing();
+
 };
 
-MeleeAttack.prototype.attemptSwing = function() {
+RangeAttack.prototype.attemptSwing = function() {
   if(this.unitTarget > -1){
     var distance = [];
     var target = this.entity.manager.entities[this.unitTarget];
@@ -53,7 +55,7 @@ MeleeAttack.prototype.attemptSwing = function() {
   }
 };
 
-MeleeAttack.prototype.doSwing = function() {
+RangeAttack.prototype.doSwing = function() {
   var target = this.entity.manager.entities[this.unitTarget];
   if(target){
     console.log(
@@ -63,13 +65,29 @@ MeleeAttack.prototype.doSwing = function() {
     );
     
     this.attackSwingId = -1;
-    target.resources[0].sub(this.attackDamage);
-
+    // target.resources[0].sub(this.attackDamage);
+    this.createProjectile(target);
     this.backswingId = this.entity.manager.core.registerTimer(this.backswingTime, this.attemptSwing, {}, this, false);
   }
 };
 
-MeleeAttack.prototype.run = function(data) {
+RangeAttack.prototype.createProjectile = function(target) {
+  var proj = this.entity.manager.createEntity({
+    x:this.entity.body.position[0],
+    y:this.entity.body.position[1],
+    mass:1,
+    p: this.entity.owner,
+    movement:'seek'
+  });
+  proj.movement.setTarget(target.body.position);
+  proj.subscribedEvents[target.eventDispatcher.id] = {};
+  proj.subscribedEvents[target.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = function(e){
+    proj.movement.setTarget(target.body.position);
+  }
+  target.eventDispatcher.registerEventListener(proj);
+};
+
+RangeAttack.prototype.run = function(data) {
   console.log("Used ability - %s", this.name);
   console.log(data);
   this.entity.setAttackMaterial();
@@ -88,7 +106,7 @@ MeleeAttack.prototype.run = function(data) {
   this.entity.movement.setTarget(data.groundTarget);
 };
 
-MeleeAttack.prototype.onTargetPositionChange = function(e){
+RangeAttack.prototype.onTargetPositionChange = function(e){
   // console.log("target position changed, readjusting");
   // console.log(e.creator.body.position);
   var distance = [];
@@ -100,21 +118,21 @@ MeleeAttack.prototype.onTargetPositionChange = function(e){
   }
 };
 
-MeleeAttack.prototype.clearTarget = function() {
+RangeAttack.prototype.clearTarget = function() {
   this.subscribedEvents[this.unitTargetEdId] = {};
   this.attackSwingId = -1;
   this.unitTarget = -1;
   this.backswingId = -1;
 };
 
-MeleeAttack.prototype.onTargetDestroyed = function(e) {
+RangeAttack.prototype.onTargetDestroyed = function(e) {
   if(e.data[1] == this.unitTarget){
     console.log("TARGET DIED, CLEANING RESOURCES");
     this.clearTarget();
   }
 };
 
-MeleeAttack.prototype.onTargetReached = function(e) {
+RangeAttack.prototype.onTargetReached = function(e) {
   console.log("%d target reached", this.entity.id);
   this.entity.setDefaultMaterial();
   if(this.unitTarget > -1){
@@ -123,14 +141,14 @@ MeleeAttack.prototype.onTargetReached = function(e) {
   }
 };
 
-MeleeAttack.prototype.destroy = function() {
+RangeAttack.prototype.destroy = function() {
   if(this.attackSwingId > -1 ){
     this.entity.manager.core.removeTimer(this.attackSwingId);
   }
 };
 
-MeleeAttack.prototype.getSubscribedEvents = function(id) {
+RangeAttack.prototype.getSubscribedEvents = function(id) {
   return this.subscribedEvents[id];
 };
 
-module.exports = MeleeAttack;
+module.exports = RangeAttack;

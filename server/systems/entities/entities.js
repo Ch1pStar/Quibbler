@@ -225,6 +225,9 @@ EntitySystem.prototype.createEntity = function (data) {
   var x = data.x;
   var y = data.y;
   var type = data.type;
+  if(!data.movement){
+    data.movement = 'fp';
+  }
   var entity = new Entity({
     x:x,
     y:y,
@@ -237,10 +240,12 @@ EntitySystem.prototype.createEntity = function (data) {
     mass: data.mass,
     defaultMaterial: this.entityDefaultMaterial,
     attackMaterial: this.entityAttackMaterial,
+    movement: data.movement,
     manager: this,
     id: this.eId++
   });
   entity.addAbility('melee-attack');
+  entity.addAbility('range-attack');
   entity.addAbility('test-ability', ['fp']);
 
   this.entities[entity.id] = entity;
@@ -249,14 +254,16 @@ EntitySystem.prototype.createEntity = function (data) {
   var data = entity.getInitialNetworkAttributes();
   var resultEvent = new Event(consts.EVENT_ACTION.PRODUCE, {}, data);
   this.eventBroadcast(resultEvent);
+  return entity;
 };
 
 EntitySystem.prototype.removeEntity = function(eId) {
   var e = this.entities[eId];
-  e.cleanAbilities();
+  e.onDestroy();
   this.physics.removeBody(e.body);
   // this.entities.splice(this.entities.indexOf(e),1);
   var removeEvent = new Event(consts.EVENT_ENTITY_ACTION.REMOVE, {}, [1,eId]);
+  this.eventBroadcast(removeEvent);
   this.core.ps.broadcastToPlayers(removeEvent);
   this.entities[eId] = null;
 };

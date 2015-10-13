@@ -28,6 +28,29 @@ define([], function(){
       grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 1);
       grphx.drawCircle(this.tileWidth/2, this.tileHeight, 10);
       // grphx.drawCircle(this.tileWidth/2, this.tileHeight/2, 20);
+      
+
+      // var healthBar = this.pGame.add.graphics(0,0)
+      // healthBar.lineStyle(10, this.owner.team.color,1);
+      // healthBar.beginFill(this.owner.team.color, 1) // color  // required settings
+      // healthBar.drawRect(0, 0, 1, 1); // x, y, width, height
+      // grphx.addChild(healthBar);
+      
+      this.maxHealth = 100;
+      this.hp = 100;
+
+      var healthBarLength = (this.hp/this.maxHealth)*32;
+
+      // this.healthBar = grphx.drawRect(0, -10, healthBarLength, 5); // x, y, width, height
+
+      var hpBar = this.pGame.add.graphics(0,0);
+      hpBar.lineStyle(1, this.owner.team.color, 1);
+      hpBar.beginFill(this.owner.team.color, 1) // color  // required settings
+      hpBar.drawRect(0, -10, healthBarLength, 5); // x, y, width, height
+      // grphx.addChild(hpBar);
+      this.healthBar = hpBar;
+
+
       this.grphx = grphx;
       
 
@@ -79,9 +102,11 @@ define([], function(){
       // 
       this.drawPath = false;
 
-      this.hp = 100;
 
       this.isEntity = true;
+
+      this.linearIdle = true;
+      this.rotationIdle = true;
 
     },
 
@@ -156,6 +181,10 @@ define([], function(){
     },
 
     draw: function(){
+      this.healthBar.x = this.obj.x-this.obj.width/2;
+      this.healthBar.y = this.obj.y-this.obj.height/2;
+      this.healthBar.scale.x = (this.hp/this.maxHealth);
+
       this.renderCalls++;
      
       // var p = this.pGame.input.mousePointer;
@@ -183,6 +212,7 @@ define([], function(){
     remove: function(){
       this.setSelected(false);
       this.obj.destroy();
+      this.healthBar.destroy();
 
       //maybe free entity resources aswell? who cares maybe later
     },
@@ -249,6 +279,38 @@ define([], function(){
         this.obj.y = this.lerp(targetPos.y, prevPos.y, timePoint);
         this.obj.rotation = this.lerp(targetPos.r, prevPos.r, timePoint);
 
+        //TODO Animations
+        //linear movement animation
+        if(prevPos.x == targetPos.x && prevPos.y == targetPos.y){
+          if(!this.linearIdle){
+            // console.log("%d - stop linear movement", this.id);
+          }
+          this.linearIdle = true;
+        }else{
+          if(this.linearIdle){
+            // console.log("%d - start linear movement animation", this.id);
+          }
+          this.linearIdle = false;
+        }
+
+        //rotation animation
+        if(prevPos.r == targetPos.r){
+          if(!this.rotationIdle){
+            // console.log("%d - stop rotation animation", this.id);
+          }
+          this.rotationIdle = true;
+        }else{
+          if(this.rotationIdle){
+            // console.log("%d - start rotation animation", this.id);
+          }
+          this.rotationIdle = false;
+        }
+
+        //TODO Resources
+        if(targetFrame.resources && targetFrame.resources.length > 0){
+          this.hp = targetFrame.resources[0];
+        }
+
         this.resolveVision(targetFrame);
         this.displayPath(targetFrame.path);
       }
@@ -306,7 +368,6 @@ define([], function(){
         // this.manager.fogMask[y + x0][x + y0] = 1;
         // this.manager.fogMask[-y + x0][x + y0] = 1;
 
-
         var leftC = -x + x0;
         var leftR = -y + y0;
         var rightC = x + x0;
@@ -323,10 +384,6 @@ define([], function(){
 
         // this.manager.fogMask[-y + x0][-x + y0] = 1;
         // this.manager.fogMask[y + x0][-x + y0] = 1;
-
-
-
-
 
         y++;
         if (radiusError<0){

@@ -37,5 +37,17 @@ define({
     SPAWN: 40,
     MOVE: 41,
     REMOVE: 42
+  }),
+
+  EVENT_ENTITY_ANIMATION: Object.freeze({
+    RUN_BEGIN: 120,
+    RUN_END: 121,
+    ATTACK_BEGIN: 122,
+    ATTACK_END:123,
+    ATTACK_SPECIAL_BEGING: 124,
+    ATTACK_SPECIAL_END: 125,
+    ABILITY_BEING: 126,
+    ABILITY_END: 127
   })
+
 });

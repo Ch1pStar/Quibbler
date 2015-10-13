@@ -11,7 +11,8 @@ function FollowPath (movement) {
 
   this.arrivalTolerance = 2;
 
-  this.idle = true;
+  this.rotationIdle = true;
+  this.linearIdle = true;
 
   this.emptyVector = [[0,0],0];
 
@@ -46,7 +47,8 @@ FollowPath.prototype.calculateRealSteering = function(resultVector) {
 
     if(this.currentPathNodeIndex >= this.path.length){
       //path is finished
-      this.idle = true;
+      this.rotationIdle = true;
+      this.linearIdle = true;
       this.currentPathNodeIndex = 0;
       this.path = [];
       resultVector = this.emptyVector;
@@ -61,7 +63,7 @@ FollowPath.prototype.calculateRealSteering = function(resultVector) {
       // }
       return resultVector;
     }else{
-      this.idle = false;
+      this.linearIdle = false;
     }
   }
 
@@ -76,11 +78,13 @@ FollowPath.prototype.calculateRealSteering = function(resultVector) {
     Vec2.scale(toNode, this.getActualLimiter().maxAcceleration, toNode);
     resultVector[0] = toNode;
     resultVector[1] = .0;
+    this.rotationIdle = true;
   }else{
     resultVector[0] = [0,0];
     var targetRotation = this.getActualLimiter().maxAngularSpeed;
     targetRotation *= rotation/rotationSize;
-    resultVector[1] = targetRotation; 
+    resultVector[1] = targetRotation;
+    this.rotationIdle = false;
   }
   return resultVector;
 };

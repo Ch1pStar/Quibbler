@@ -79,6 +79,7 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
     },
 
     onEntityStateUpdate: function(e){
+
       this.resetFogMask();
 
       var lerpPlusLatency = this.entityLerpMsec; //+ this.serverLatency;
@@ -89,7 +90,16 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
       if(currEntity!=null){
 
         var currEntityAttributesCount = 7;
-        var currEntitySeenByLength = e.data[6];
+
+        var currEntityResourcesLength = e.data[6];
+        var currEntityResourcesArr = new Array(currEntityResourcesLength);
+        for (var i = 0; i < currEntityResourcesLength; i++) {
+          var currEntityResource = e.data[i+currEntityAttributesCount];
+          currEntityResourcesArr[i] = currEntityResource;
+        };
+
+
+        var currEntitySeenByLength =currEntityResourcesLength+currEntityAttributesCount;
         var currEntitySeenByArr = new Array(currEntitySeenByLength);
         for (var i = 0; i < currEntitySeenByLength; i++) {
           var currEntitySeenBy = e.data[i+currEntityAttributesCount];
@@ -127,6 +137,7 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
           x:e.data[0],// + (Math.random()*300),
           y:e.data[1],// + (Math.random()*300),
           r:e.data[2],
+          resources: currEntityResourcesArr,
           seenBy: currEntitySeenByArr,
           path: currEntityLocalPath,
           t:lerpTargetTime + lerpPlusLatency,

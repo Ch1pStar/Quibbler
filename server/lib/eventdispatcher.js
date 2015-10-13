@@ -33,6 +33,10 @@ EventDispatcher.prototype.registerEventBroadcaster = function(broadcaster) {
   }
 };
 
+EventDispatcher.prototype.removeEventListener = function(listener) {
+  this.eventListeners.splice(this.eventListeners.indexOf(listener), 1);
+};
+
 EventDispatcher.prototype.dispatchEvent = function (e) {
   //Add a tick stamp to the event
   // e.tick = this.tick;

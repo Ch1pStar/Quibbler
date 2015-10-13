@@ -9,6 +9,7 @@ var consts = require('../../lib/const.js');
 //Components
 var GroundMovement = require('./components/groundmovement');
 var MeleeAttack = require('./abilities/meleeattack');
+var RangeAttack = require('./abilities/rangeattack');
 var TrainUnit = require('./abilities/trainunit');
 var TestAbility = require('./abilities/testability');
 var Health = require('./abilities/resources/health');
@@ -55,7 +56,7 @@ function Entity(config){
 
   this.stateChanged = false;
 
-  this.movement = new GroundMovement(this, 'fp');
+  this.movement = new GroundMovement(this, config.movement);
   this.path = [];
 
   //Unit resources - health, mana etc
@@ -65,11 +66,14 @@ function Entity(config){
   this.abilityPool = {
     "train-unit": TrainUnit,
     "melee-attack": MeleeAttack,
+    "range-attack": RangeAttack,
     "test-ability": TestAbility
   };
 
   this.eventDispatcher = this.manager.core.createEventDispatcher();
   this.eventDispatcher.registerEventBroadcaster(this);
+
+  this.subscribedEvents = {};
 }
 
 
@@ -112,6 +116,15 @@ Entity.prototype.update = function (time) {
     var posEvent = new Event(consts.EVENT_ENTITY_STATE_CHANGE.ORIENTATION, this, {});
     this.eventBroadcast(posEvent);
   }
+
+  for (var i = 0; i < this.resources.length; i++) {
+    var res = this.resources[i];
+    if(res.value != res.previousValue){
+      this.stateChanged = true;
+      var resEvent = new Event(consts.EVENT_ENTITY_STATE_CHANGE.RESOURCE, this, res);
+      this.eventBroadcast(resEvent);
+    }
+  };
 
   //movement
   this.movement.process(time);
@@ -162,6 +175,12 @@ Entity.prototype.getNetworkAttributes = function () {
     this.visionRadius,
     this.owner.id
   ];
+  if(this.resources.length>0){
+    res.push(this.resources.length);
+  }
+  for (var i = 0; i < this.resources.length; i++) {
+    res.push(this.resources[i].value);
+  };
 
   if(this.seenBy.length>0){
     res.push(this.seenBy.length);
@@ -196,6 +215,9 @@ Entity.prototype.getInitialNetworkAttributes = function () {
   return res;
 };
 
+Entity.prototype.onDestroy = function() {
+  this.cleanAbilities();
+};
 
 Entity.prototype.cleanAbilities = function() {
   for (var i = 0; i < this.abilities.length; i++) {
@@ -206,6 +228,10 @@ Entity.prototype.cleanAbilities = function() {
 
 Entity.prototype.setEventBroadcast = function(cb) {
   this.eventBroadcast = cb;
+};
+
+Entity.prototype.getSubscribedEvents = function(id) {
+  return this.subscribedEvents[id];
 };
 
 module.exports = Entity;

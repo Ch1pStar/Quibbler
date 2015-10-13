@@ -85,7 +85,6 @@ GroundMovement.prototype.getTilePath = function() {
   var mapTileHeight = this.entity.manager.map.tileHeight;
   var mapTileWidth = this.entity.manager.map.tileWidth;
 
-
   var path = this.getPath();
   var res = [];
   for (var i = 0; i < path.length; i++) {

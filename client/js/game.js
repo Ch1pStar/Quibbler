@@ -66,6 +66,13 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     this.mouseUpHandlers = [this.leftClickUp, this.scrollClickUp, this.rightClickUp];
 
 
+    this.mouseAbilities = [
+      {bind:0, a:this.leftClickUp, quickCast: true},
+      {bind:1, a:this.attack, quickCast: false, cursor: 'attack_default'},
+      {bind:2, a:this.testAbility, quickCast: true}
+    ];
+
+
     //s, a, c, v, h, z, down, right, up, left
     // this.abilityBinds = [83, 65, 67, 86, 72, 40, 39, 38, 37];
     this.abilities = [
@@ -567,7 +574,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       console.log("right click");
       //move command
       var abilityIndex = 1;
-      this.sendGroundAbilityCommand(this.game.input.mousePointer.x, this.game.input.mousePointer.x, abilityIndex);
+      this.sendAbilityCommand(abilityIndex);
       // var eventMessage = new GameMessageEvent(Util.EVENT_PLAYER_COMMAND.UNIT_ABILITY, [this.game.input.mousePointer.x, this.game.input.mousePointer.y, abilityIndex]);
       // this.inputBuffer.push(eventMessage);
     },
@@ -581,7 +588,18 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * @param  {Phaser.MousePointer} pointer The MousePointer object
      */
     mouseUpClickHandler: function(pointer){
-      this.mouseUpHandlers[pointer.button].call(this, pointer);
+      for (var i = 0; i < this.mouseAbilities.length; i++) {
+        if(pointer.button == this.mouseAbilities[i].bind){
+          var ab = this.mouseAbilities[i];
+          if(ab.quickCast){
+            ab.a.call(this, this.game.input.mousePointer);
+          }else{
+            if(!ab.cursor) ab.cursor = "default";
+            this.setCursor(ab.cursor);
+            this.selectedAbility = ab.a;
+          }
+        }
+      };
     },
 
     /**
@@ -739,7 +757,6 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
      * @param  {GameMessageEvent}
      */
     executeEvent: function(e){
-
       //Add a tick stamp to the event
       e.tick = this.tickCount;
       // console.log("----Begin Event(action: %s) Dispatch at %d(%dms)----", e.action, e.tick, Math.round(e.tick*this.tickRate));
