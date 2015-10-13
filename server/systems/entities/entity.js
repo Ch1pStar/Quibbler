@@ -33,10 +33,9 @@ function Entity(config){
   body.addShape(shape);
 
   this.body = body;
-
-
+  this.p2BodyId = body.id;
   this.id = config.id
-  // this.id = this.body.id;
+  this.body.entityId = this.id;
 
   this.manager = config.manager;
 

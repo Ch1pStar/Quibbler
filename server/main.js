@@ -6,7 +6,9 @@ c = {};
 main();
 
 function main() {
-  getConfigFile(process.argv[2], function(config) {
+  //load default config file if none is specified
+  var path = process.argv[2]?process.argv[2]:'./config/core.json';
+  getConfigFile(path, function(config) {
       if(config) {
         c = new Core(config);
       }else{

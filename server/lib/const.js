@@ -40,6 +40,9 @@ exports.EVENT_ENTITY_ACTION = Object.freeze({
   REMOVE: 42
 });
 
+exports.EVENT_ENTITY = Object.freeze({
+  IMPACT: 50
+});
 
 exports.EVENT_ENTITY_STATE_CHANGE = Object.freeze({
   DESTROY: 100,

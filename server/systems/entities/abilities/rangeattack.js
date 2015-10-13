@@ -9,12 +9,14 @@ function RangeAttack (entity) {
   this.unitTargetEdId = -1;
 
   this.attackRange = 650;
-  this.swingTime = 1250; //ms
+  this.swingTime = 450; //ms
   this.backswingTime = 50; //ms
   this.attackSwingId = -1;
-  this.attackDamage = 2;
+  this.attackDamage = 5;
 
   this.subscribedEvents = {};
+
+  this.activeProjectiles = [];
 
   //listen for global events
   this.entity.manager.core.eventDispatcher.registerEventListener(this);
@@ -79,12 +81,26 @@ RangeAttack.prototype.createProjectile = function(target) {
     p: this.entity.owner,
     movement:'seek'
   });
+  var self = this;
   proj.movement.setTarget(target.body.position);
-  proj.subscribedEvents[target.eventDispatcher.id] = {};
-  proj.subscribedEvents[target.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = function(e){
+  var targetEdId = target.eventDispatcher.id;
+  proj.subscribedEvents[targetEdId] = {};
+  proj.subscribedEvents[targetEdId][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = function(e){
     proj.movement.setTarget(target.body.position);
   }
+
   target.eventDispatcher.registerEventListener(proj);
+
+  proj.subscribedEvents[proj.eventDispatcher.id] = {};
+  proj.subscribedEvents[proj.eventDispatcher.id][consts.EVENT_ENTITY.IMPACT] = function(e){
+    if(e.data.id == target.id){
+      proj.manager.removeEntity(proj.id);
+      target.resources[0].sub(self.attackDamage);
+    }
+  }
+  proj.eventDispatcher.registerEventListener(proj);
+
+  this.activeProjectiles.push(proj);
 };
 
 RangeAttack.prototype.run = function(data) {
@@ -97,11 +113,7 @@ RangeAttack.prototype.run = function(data) {
     target.eventDispatcher.registerEventListener(this);
     this.unitTargetEdId = target.eventDispatcher.id;
     this.subscribedEvents[this.unitTargetEdId] = {};
-    this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = this.onTargetPositionChange;
-    this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.DESTROY] = function(){console.log("asdaasdasfadfgagdsgsdfgdsgfsgfsgsgs");}
-    // this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.TARGET_REACHED] = function(e){
-    //   this.subscribedEvents[this.unitTargetEdId] = {};
-    // };  
+    this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = this.onTargetPositionChange;  
   }
   this.entity.movement.setTarget(data.groundTarget);
 };
@@ -123,6 +135,13 @@ RangeAttack.prototype.clearTarget = function() {
   this.attackSwingId = -1;
   this.unitTarget = -1;
   this.backswingId = -1;
+  for (var i = 0; i < this.activeProjectiles.length; i++) {
+    var proj = this.activeProjectiles[i];
+    if(proj){
+      proj.manager.removeEntity(proj.id);
+    }
+  };
+  this.activeProjectiles = [];
 };
 
 RangeAttack.prototype.onTargetDestroyed = function(e) {

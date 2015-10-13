@@ -10,7 +10,6 @@ function EntitySystem(id, timestep, mapUrl, core) {
   this.timestep = timestep;
   this.name = 'entity-system';
   this.entities = [];
-  this.eId = 0;
   this.core = core;
   var self = this;
   this.coreEDId = this.core.eventDispatcher.id;
@@ -21,7 +20,8 @@ function EntitySystem(id, timestep, mapUrl, core) {
   this.entityAttackMaterial = new p2.Material();
 
   this.physics = this.createP2PhysicsWorld(true);
-  
+  this.addEntityImpactNotifications(this.physics);
+
   this.addMap(mapUrl);
 
   this.pathfinder = new pf.AStarFinder({
@@ -53,7 +53,11 @@ function EntitySystem(id, timestep, mapUrl, core) {
     console.log("Player %d issued a spawn entity order with type %d at %d,%d", e.data.p.id, e.data.type, e.data.x, e.data.y);
     var data = e.data;
     data.mass = 1;
-    this.createEntity(data);
+    var ent = this.createEntity(data);
+
+    ent.addAbility('melee-attack');
+    ent.addAbility('range-attack');
+    ent.addAbility('test-ability', ['fp']);
 
     // this.addMapBounds();
   }
@@ -207,18 +211,29 @@ EntitySystem.prototype.createP2PhysicsWorld = function (profiling) {
   // world.solveConstraints = false;
   world.applyGravity = false;
 
-  console.log(this, this.entityDefaultMaterial, this.entityAttackMaterial);
   var attackCM = new p2.ContactMaterial(this.entityDefaultMaterial, this.entityAttackMaterial,{
     friction : 1.0,
     restitution: 1
   });
   world.addContactMaterial(attackCM);
 
-
-  // world.on('impact', function(e){
-  //  console.log(e.bodyA.id);
-  // });
   return world;
+};
+
+EntitySystem.prototype.addEntityImpactNotifications = function(world) {
+  var es = this;
+  world.on('impact', function(e){
+   // console.log("**************impact**************");
+   // 
+   var entA = es.entities[e.bodyA.entityId];
+   var entB = es.entities[e.bodyB.entityId];
+   if(entA && entB){
+    var impactEventA = new Event(consts.EVENT_ENTITY.IMPACT, entA, entB);
+    entA.eventBroadcast(impactEventA);
+    var impactEventB = new Event(consts.EVENT_ENTITY.IMPACT, entB, entA);
+    entB.eventBroadcast(impactEventB); 
+   }
+  });
 };
 
 EntitySystem.prototype.createEntity = function (data) {
@@ -228,6 +243,14 @@ EntitySystem.prototype.createEntity = function (data) {
   if(!data.movement){
     data.movement = 'fp';
   }
+  var eId = this.entities.length;
+  for (var i = 0; i < this.entities.length; i++) {
+    var slot = this.entities[i];
+    if(slot == null){
+      eId = i;
+      break;
+    }
+  };
   var entity = new Entity({
     x:x,
     y:y,
@@ -242,11 +265,8 @@ EntitySystem.prototype.createEntity = function (data) {
     attackMaterial: this.entityAttackMaterial,
     movement: data.movement,
     manager: this,
-    id: this.eId++
+    id: eId
   });
-  entity.addAbility('melee-attack');
-  entity.addAbility('range-attack');
-  entity.addAbility('test-ability', ['fp']);
 
   this.entities[entity.id] = entity;
   this.physics.addBody(entity.body);
@@ -259,13 +279,15 @@ EntitySystem.prototype.createEntity = function (data) {
 
 EntitySystem.prototype.removeEntity = function(eId) {
   var e = this.entities[eId];
-  e.onDestroy();
-  this.physics.removeBody(e.body);
-  // this.entities.splice(this.entities.indexOf(e),1);
-  var removeEvent = new Event(consts.EVENT_ENTITY_ACTION.REMOVE, {}, [1,eId]);
-  this.eventBroadcast(removeEvent);
-  this.core.ps.broadcastToPlayers(removeEvent);
-  this.entities[eId] = null;
+  if(e){
+    e.onDestroy();
+    this.physics.removeBody(e.body);
+    // this.entities.splice(this.entities.indexOf(e),1);
+    var removeEvent = new Event(consts.EVENT_ENTITY_ACTION.REMOVE, {}, [1,eId]);
+    this.eventBroadcast(removeEvent);
+    this.core.ps.broadcastToPlayers(removeEvent);
+    this.entities[eId] = null;
+  }
 };
 
 EntitySystem.prototype.removeAllEntities = function() {
