@@ -43,12 +43,14 @@ MeleeAttack.prototype.attemptSwing = function() {
   if(this.unitTarget > -1){
     var distance = [];
     var target = this.entity.manager.entities[this.unitTarget];
-    Vec2d.subtract(this.entity.body.position, target.body.position, distance);
-    var distanceLen = Vec2d.len(distance);
-    if(distanceLen < this.attackRange && this.attackSwingId < 0){
-      console.log("Starting to swing at target");
-      this.entity.movement.setTarget(this.entity.body.position);
-      this.attackSwingId = this.entity.manager.core.registerTimer(this.swingTime, this.doSwing, {}, this, false);
+    if(target){
+      Vec2d.subtract(this.entity.body.position, target.body.position, distance);
+      var distanceLen = Vec2d.len(distance);
+      if(distanceLen < this.attackRange && this.attackSwingId < 0){
+        console.log("Starting to swing at target");
+        this.entity.movement.setTarget(this.entity.body.position);
+        this.attackSwingId = this.entity.manager.core.registerTimer(this.swingTime, this.doSwing, {}, this, false);
+      }
     }
   }
 };

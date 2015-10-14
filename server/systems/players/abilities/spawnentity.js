@@ -6,7 +6,7 @@ function SpawnEntity(player) {
 
   this.player = player;
 
-  this.trainTimeMs = 1000;
+  this.trainTimeMs = 500;
 
 }
 
@@ -22,8 +22,9 @@ SpawnEntity.prototype.trainFinished = function(data) {
   var e = new Event(consts.EVENT_ENTITY_ACTION.SPAWN, {}, {
     p: this.player,
     type: parseInt(data[2]),
-    x: data[0]+16,
-    y: data[1]+16
+    bodyProperties: {
+      position: [data[0]+16, data[1]+16]
+    }
   });
 
   this.player.manager.eventBroadcast(e);

@@ -6,7 +6,8 @@
     "start": "node main.js config/core.json"
   },
   "dependencies": {
-    "p2": "0.6.0",
+    "p2": "*",
+    "pathfinding": "*",
     "ws": "0.4.32"
   }
 }

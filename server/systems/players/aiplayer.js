@@ -72,8 +72,9 @@ AIPlayer.prototype.spawnOrder = function (data) {
     var e = new Event(consts.EVENT_ENTITY_ACTION.SPAWN, {}, {
       p: this,
       type: parseInt(data[2]),
-      x: parseInt((data[0]*32)+16),
-      y: parseInt((data[1]*32)+16)
+      bodyProperties: {
+        position: [parseInt((data[0]*32)+16), parseInt((data[1]*32)+16)]
+      }
     });
     this.manager.eventBroadcast(e);
 };

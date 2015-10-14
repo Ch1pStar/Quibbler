@@ -23,8 +23,9 @@ TrainUnit.prototype.trainFinished = function(data) {
   var e = new Event(consts.EVENT_ENTITY_ACTION.SPAWN, {}, {
     p: this.entity.owner,
     type: parseInt(data[2]),
-    x: data[0]+16,
-    y: data[1]+16
+    bodyProperties: {
+      position: [data[0]+16, data[1]+16]
+    },
   });
   this.entity.manager.eventBroadcast(e);
 

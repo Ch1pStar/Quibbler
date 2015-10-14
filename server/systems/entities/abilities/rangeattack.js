@@ -9,10 +9,10 @@ function RangeAttack (entity) {
   this.unitTargetEdId = -1;
 
   this.attackRange = 650;
-  this.swingTime = 450; //ms
+  this.swingTime = 650; //ms
   this.backswingTime = 50; //ms
   this.attackSwingId = -1;
-  this.attackDamage = 5;
+  this.attackDamage = .1;
 
   this.subscribedEvents = {};
 
@@ -34,7 +34,7 @@ function RangeAttack (entity) {
 RangeAttack.prototype.selfPositionChange = function(e) {
   //cancel attack upon movement
   if(this.attackSwingId > -1){
-    console.log("Unit moved and attack swing was interupted!");
+    // console.log("Unit moved and attack swing was interupted!");
     this.entity.manager.core.removeTimer(this.attackSwingId);
     this.attackSwingId = -1;
   }
@@ -47,12 +47,14 @@ RangeAttack.prototype.attemptSwing = function() {
   if(this.unitTarget > -1){
     var distance = [];
     var target = this.entity.manager.entities[this.unitTarget];
-    Vec2d.subtract(this.entity.body.position, target.body.position, distance);
-    var distanceLen = Vec2d.len(distance);
-    if(distanceLen < this.attackRange && this.attackSwingId < 0){
-      console.log("Starting to swing at target");
-      this.entity.movement.setTarget(this.entity.body.position);
-      this.attackSwingId = this.entity.manager.core.registerTimer(this.swingTime, this.doSwing, {}, this, false);
+    if(target){
+      Vec2d.subtract(this.entity.body.position, target.body.position, distance);
+      var distanceLen = Vec2d.len(distance);
+      if(distanceLen < this.attackRange && this.attackSwingId < 0){
+        // console.log("Starting to swing at target");
+        this.entity.movement.setTarget(this.entity.body.position);
+        this.attackSwingId = this.entity.manager.core.registerTimer(this.swingTime, this.doSwing, {}, this, false);
+      }
     }
   }
 };
@@ -60,11 +62,11 @@ RangeAttack.prototype.attemptSwing = function() {
 RangeAttack.prototype.doSwing = function() {
   var target = this.entity.manager.entities[this.unitTarget];
   if(target){
-    console.log(
-      "****************Unit %d was hit by %d at %d(%d)*******************", 
-      this.unitTarget, this.entity.id, this.entity.manager.core.tick, 
-      this.entity.manager.core.tick*this.entity.manager.core.tickRate
-    );
+    // console.log(
+    //   "****************Unit %d was hit by %d at %d(%d)*******************", 
+    //   this.unitTarget, this.entity.id, this.entity.manager.core.tick, 
+    //   this.entity.manager.core.tick*this.entity.manager.core.tickRate
+    // );
     
     this.attackSwingId = -1;
     // target.resources[0].sub(this.attackDamage);
@@ -75,12 +77,18 @@ RangeAttack.prototype.doSwing = function() {
 
 RangeAttack.prototype.createProjectile = function(target) {
   var proj = this.entity.manager.createEntity({
-    x:this.entity.body.position[0],
-    y:this.entity.body.position[1],
-    mass:1,
+    bodyProperties:{
+      mass: 1,
+      type: 4, //kinematic body,
+      collisionResponse: false,
+      position: this.entity.body.position
+    },
     p: this.entity.owner,
-    movement:'seek'
+    movement:'seek',
+    visionRadius: 0
   });
+  proj.movement.maxSpeed = 500;
+  proj.movement.maxAcceleration = 500;
   var self = this;
   proj.movement.setTarget(target.body.position);
   var targetEdId = target.eventDispatcher.id;
@@ -123,10 +131,12 @@ RangeAttack.prototype.onTargetPositionChange = function(e){
   // console.log(e.creator.body.position);
   var distance = [];
   var target = this.entity.manager.entities[this.unitTarget];
-  Vec2d.subtract(this.entity.body.position, target.body.position, distance);
-  var distanceLen = Vec2d.len(distance);
-  if(distanceLen > this.attackRange){
-    this.entity.movement.setTarget(e.creator.body.position);
+  if(target){
+    Vec2d.subtract(this.entity.body.position, target.body.position, distance);
+    var distanceLen = Vec2d.len(distance);
+    if(distanceLen > this.attackRange){
+      this.entity.movement.setTarget(e.creator.body.position);
+    }
   }
 };
 

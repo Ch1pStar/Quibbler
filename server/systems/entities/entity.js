@@ -15,17 +15,24 @@ var TestAbility = require('./abilities/testability');
 var Health = require('./abilities/resources/health');
 
 function Entity(config){
+  if(!config.bodyProperties.position){
+    throw new Error("Spawn position required to create entity");
+  };
+  if(typeof config.bodyProperties.mass == 'undefined'){
+    config.bodyProperties.mass = 1;
+  }
 
-  var body = new Body({
-    position: [config.x, config.y],
-    mass: config.mass
-    // angle: config.r
-  });
+  if(typeof config.bodyProperties.type == 'undefined'){
+    config.bodyProperties.type = Body.DYNAMIC;
+  }
+  var body = new Body(config.bodyProperties);
+
+  console.log(body.collisionResponse);
 
   this.defaultMaterial = config.defaultMaterial;
   this.attackMaterial = config.attackMaterial;
 
-  var shape = new Circle(config.width/2);
+  var shape = new Circle({radius: config.width/2});
   shape.material = this.defaultMaterial;
 
   this.baseShape = shape;
@@ -40,6 +47,9 @@ function Entity(config){
   this.manager = config.manager;
 
   this.owner = config.owner;
+  if(typeof config.visionRadius == 'undefined'){
+    config.visionRadius = 3;
+  }
   this.visionRadius = config.visionRadius;
   this.seenBy = [];
 
@@ -55,6 +65,9 @@ function Entity(config){
 
   this.stateChanged = false;
 
+  if(!config.movement){
+    config.movement = 'fp';
+  }
   this.movement = new GroundMovement(this, config.movement);
   this.path = [];
 

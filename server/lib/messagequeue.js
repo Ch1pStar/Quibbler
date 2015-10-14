@@ -27,9 +27,9 @@ MessageQueue.prototype.push = function(message) {
   this._data[this._tail] = message;
   this._tail = (this._tail + 1) % this._size;
   if (this._tail == this._head){
+    throw new Error("a message queue is full");
     this._head = (this._head + 1) % this._size; /* full, overwrite */
   }
-
 };
 
 /**

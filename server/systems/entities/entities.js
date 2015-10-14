@@ -50,7 +50,11 @@ function EntitySystem(id, timestep, mapUrl, core) {
 
   this.subscribedEvents[this.coreEDId][consts.EVENT_ENTITY_ACTION.SPAWN] = function(e){
     e.canPropagate = false;
-    console.log("Player %d issued a spawn entity order with type %d at %d,%d", e.data.p.id, e.data.type, e.data.x, e.data.y);
+    console.log(
+      "Player %d issued a spawn entity order with type %d at %d,%d", 
+      e.data.p.id, e.data.type, 
+      e.data.bodyProperties.position[0], e.data.bodyProperties.position[1]
+    );
     var data = e.data;
     data.mass = 1;
     var ent = this.createEntity(data);
@@ -89,31 +93,31 @@ EntitySystem.prototype.groundAbilityCommandListener = function(e) {
   };
 };
 
-  
 EntitySystem.prototype.targetAbilityCommandListener = function(e) {
 
   var player = e.creator;
   player.highlightUnit = player.selection[0];
   var data = e.data;
   
-  for (var i = 0; i < player.selection.length; i++) {
-    var currEntity = player.selection[i];
-    // var currEntity = player.highlightUnit;
-    if(typeof currEntity != 'undefined'){
-      var command = {
-        target: data[0],
-        groundTarget: this.entities[data[0]].body.position,
-        index: data[1],
-        useQueue: data[2]
-      };
-      currEntity.addAbilityCommand(command);  
-    }
-  };
+  var target = this.entities[data[0]];
+  if(target){
+    for (var i = 0; i < player.selection.length; i++) {
+      var currEntity = player.selection[i];
+      // var currEntity = player.highlightUnit;
+      if(typeof currEntity != 'undefined'){
+        var command = {
+          target: data[0],
+          groundTarget: target.body.position,
+          index: data[1],
+          useQueue: data[2]
+        };
+        currEntity.addAbilityCommand(command);
+      }
+    };
+  }
 };
 
 EntitySystem.prototype.moveCommandListener = function(e) {
-
-
   var xTile = Math.round( (e.data[0]-(this.map.tileWidth/2)) /this.map.tileWidth);
   var yTile = Math.round( (e.data[1]-(this.map.tileHeight/2)) /this.map.tileHeight);
 
@@ -164,7 +168,10 @@ EntitySystem.prototype.addMapBounds = function() {
       ], 
       mass: 0 
     });
-    var tileShape = new p2.Rectangle(this.map.tileWidth, this.map.tileHeight);
+    var tileShape = new p2.Box({
+      width: this.map.tileWidth, 
+      height: this.map.tileHeight
+    });
     tileBody.addShape(tileShape);
     this.physics.addBody(tileBody);
     
@@ -183,7 +190,6 @@ EntitySystem.prototype.addMapBounds = function() {
   };
 
   this.mapBounds = bounds;
-
 };
 
 EntitySystem.prototype.update = function () {
@@ -240,9 +246,6 @@ EntitySystem.prototype.createEntity = function (data) {
   var x = data.x;
   var y = data.y;
   var type = data.type;
-  if(!data.movement){
-    data.movement = 'fp';
-  }
   var eId = this.entities.length;
   for (var i = 0; i < this.entities.length; i++) {
     var slot = this.entities[i];
@@ -252,22 +255,18 @@ EntitySystem.prototype.createEntity = function (data) {
     }
   };
   var entity = new Entity({
-    x:x,
-    y:y,
-    r:0,
     width: this.map.tileWidth,
     height: this.map.tileHeight,
-    visionRadius: 2,
+    visionRadius: data.visionRadius,
     type:type,
     owner: data.p,
-    mass: data.mass,
+    bodyProperties: data.bodyProperties,
     defaultMaterial: this.entityDefaultMaterial,
     attackMaterial: this.entityAttackMaterial,
     movement: data.movement,
     manager: this,
     id: eId
   });
-
   this.entities[entity.id] = entity;
   this.physics.addBody(entity.body);
 
@@ -309,7 +308,6 @@ EntitySystem.prototype.getActiveEntities = function() {
   };
   return data;
 };
-
 
 EntitySystem.prototype.setEventBroadcast = function(cb) {
   this.eventBroadcast = cb;
