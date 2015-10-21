@@ -180,11 +180,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
       // var gameHeight = 32*22;//tmp
 
       var gameWidth = window.innerWidth;
-      // var gameHeight = window.innerHeight;
       var gameHeight = 720;
-      // console.log(gameWidth, gameHeight);
-      console.log(document.body.clientHeight);
-
       this.game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, 'client-wrapper', {
         preload: this.caller(this.preload),
         create: this.caller(this.create),
