@@ -641,7 +641,7 @@ define(['jquery','core/class', 'phaser', 'gameclient', 'eventqueue',
     },
 
     testAbility: function(pointer){
-      var abilityIndex = 2;
+      var abilityIndex = 1;
       this.sendAbilityCommand(abilityIndex);
     },
 

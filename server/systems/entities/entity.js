@@ -90,7 +90,7 @@ function Entity(config){
 Entity.prototype.addAbility = function(name, args) {
   var ability = new this.abilityPool[name](this, args);
   this.abilities.push(ability);
-  this.eventDispatcher.registerEventListener(ability);
+  // this.eventDispatcher.registerEventListener(ability);
 };
 
 Entity.prototype.getAbilities = function() {

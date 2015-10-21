@@ -33,12 +33,11 @@ TestAbility.prototype.run = function(data) {
     };
     this.interaction = new TargetInteraction(options);
   }else{
-    this.entity.movement.setTarget(data.groundTarget, this, this.onTargetReached);
+    this.entity.movement.setTarget(data.groundTarget);
   }
 };
 
 TestAbility.prototype.dealDamage = function(target) {
-  console.log(this.interaction);
   target.resources[0].sub(this.attackDamage);
 };
 

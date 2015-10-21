@@ -8,6 +8,7 @@ function TargetInteraction(options) {
   this.targetEdId = -1;
   this.target = null;
   this.action = options.action;
+  this.targetDestroyed = options.targetDestroyed;
   this.swingId = -1;
   this.backswingId = -1;
 
@@ -70,7 +71,14 @@ TargetInteraction.prototype.onTargetReached = function(e) {
 };
 
 TargetInteraction.prototype.onTargetDestroyed = function(e) {
-  this.interactionFinished();
+  if(e.data[1] == this.target.id){
+    this.interactionFinished();
+
+    //call on target destroyed callback if set
+    if(this.targetDestroyed){
+      this.targetDestroyed.call(this.ability);
+    }
+  }
 };
 
 TargetInteraction.prototype.interactionFinished = function(){
