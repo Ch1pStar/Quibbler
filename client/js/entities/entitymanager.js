@@ -173,10 +173,11 @@ define(['../core/imanager', 'entities/entity', '../util','../lib/pathfinding-bro
     },
 
     removeEnitity: function(e){
-      console.log(e);
       var entity = this.entities[e.data[0]];
-      entity.remove();
-      this.entities[e.data[0]] = null;
+      if(entity){
+        entity.remove();
+        this.entities[e.data[0]] = null;
+      }
     },
 
     process: function(){

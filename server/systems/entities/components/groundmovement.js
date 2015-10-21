@@ -24,19 +24,13 @@ function GroundMovement(entity, movementAI){
     fp: FindPathAI
   };
   this.movementAI = new this.aiTypes[movementAI](this);
-
-  this.onTargetReached = {
-    ctx: null,
-    cb: null
-  };
-
 }
 
 GroundMovement.prototype.process = function(time) {
   this.movementAI.move(time); 
 };
 
-GroundMovement.prototype.setTarget = function(position, ctx, cb) {
+GroundMovement.prototype.setTarget = function(position) {
 
   var mapTileHeight = this.entity.manager.map.tileHeight;
   var mapTileWidth = this.entity.manager.map.tileWidth;
@@ -58,8 +52,6 @@ GroundMovement.prototype.setTarget = function(position, ctx, cb) {
   var tarY = yTileY+mapTileWidth/2;
   var tarX = xTileX+mapTileHeight/2;
   this.movementAI.setTarget([tarX, tarY, xTileOffset, yTileOffset]);
-  this.onTargetReached.ctx = ctx;
-  this.onTargetReached.cb = cb;
 };
 
 //surely there is a better way to do this

@@ -18,7 +18,6 @@ SpawnEntity.prototype.run = function(data) {
 };
 
 SpawnEntity.prototype.trainFinished = function(data) {
-  
   var e = new Event(consts.EVENT_ENTITY_ACTION.SPAWN, {}, {
     p: this.player,
     type: parseInt(data[2]),
@@ -26,9 +25,7 @@ SpawnEntity.prototype.trainFinished = function(data) {
       position: [data[0]+16, data[1]+16]
     }
   });
-
   this.player.manager.eventBroadcast(e);
-
 };
 
 module.exports = SpawnEntity;

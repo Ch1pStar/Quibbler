@@ -9,8 +9,8 @@ function RangeAttack (entity) {
   this.unitTargetEdId = -1;
 
   this.attackRange = 650;
-  this.swingTime = 650; //ms
-  this.backswingTime = 50; //ms
+  this.swingTime = 50; //ms
+  this.backswingTime = 0; //ms
   this.attackSwingId = -1;
   this.attackDamage = .1;
 
@@ -67,9 +67,7 @@ RangeAttack.prototype.doSwing = function() {
     //   this.unitTarget, this.entity.id, this.entity.manager.core.tick, 
     //   this.entity.manager.core.tick*this.entity.manager.core.tickRate
     // );
-    
     this.attackSwingId = -1;
-    // target.resources[0].sub(this.attackDamage);
     this.createProjectile(target);
     this.backswingId = this.entity.manager.core.registerTimer(this.backswingTime, this.attemptSwing, {}, this, false);
   }
@@ -89,6 +87,7 @@ RangeAttack.prototype.createProjectile = function(target) {
   });
   proj.movement.maxSpeed = 500;
   proj.movement.maxAcceleration = 500;
+  proj.isProjectile = true;
   var self = this;
   proj.movement.setTarget(target.body.position);
   var targetEdId = target.eventDispatcher.id;
@@ -114,7 +113,8 @@ RangeAttack.prototype.createProjectile = function(target) {
 RangeAttack.prototype.run = function(data) {
   console.log("Used ability - %s", this.name);
   console.log(data);
-  this.entity.setAttackMaterial();
+  // this.entity.setBlocking(true);
+  // this.entity.setAttackMaterial();
   if(data.target){
     this.unitTarget = data.target;
     var target = this.entity.manager.entities[data.target];
@@ -126,6 +126,19 @@ RangeAttack.prototype.run = function(data) {
   this.entity.movement.setTarget(data.groundTarget);
 };
 
+RangeAttack.prototype.abilityFinished = function() {
+  // this.entity.setBlocking(false);
+  this.subscribedEvents[this.unitTargetEdId] = {};
+  if(this.attackSwingId > -1 ){
+    this.entity.manager.core.removeTimer(this.attackSwingId);
+  }  
+  if(this.backswingId > -1 ){
+    this.entity.manager.core.removeTimer(this.backswingId);
+  }
+  this.unitTarget = -1;
+  this.unitTargetEdId = -1;
+};
+
 RangeAttack.prototype.onTargetPositionChange = function(e){
   // console.log("target position changed, readjusting");
   // console.log(e.creator.body.position);
@@ -135,6 +148,7 @@ RangeAttack.prototype.onTargetPositionChange = function(e){
     Vec2d.subtract(this.entity.body.position, target.body.position, distance);
     var distanceLen = Vec2d.len(distance);
     if(distanceLen > this.attackRange){
+      console.log("target moved out of range");
       this.entity.movement.setTarget(e.creator.body.position);
     }
   }
@@ -147,7 +161,7 @@ RangeAttack.prototype.clearTarget = function() {
   this.backswingId = -1;
   for (var i = 0; i < this.activeProjectiles.length; i++) {
     var proj = this.activeProjectiles[i];
-    if(proj){
+    if(proj && proj.isProjectile){
       proj.manager.removeEntity(proj.id);
     }
   };
@@ -156,7 +170,7 @@ RangeAttack.prototype.clearTarget = function() {
 
 RangeAttack.prototype.onTargetDestroyed = function(e) {
   if(e.data[1] == this.unitTarget){
-    console.log("TARGET DIED, CLEANING RESOURCES");
+    // console.log("TARGET DIED, CLEANING RESOURCES");
     this.clearTarget();
   }
 };

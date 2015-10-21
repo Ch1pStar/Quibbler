@@ -2,6 +2,8 @@ var Event = require('../../../lib/event.js');
 var consts = require('../../../lib/const.js');
 var Vec2d = require('../../../lib/vectormath.js');
 
+var a = require('./components/targetinteraction.js');
+
 function MeleeAttack (entity) {
   this.entity = entity;
   this.name = "basic-melee-attack";
@@ -19,24 +21,37 @@ function MeleeAttack (entity) {
   //listen for global events
   this.entity.manager.core.eventDispatcher.registerEventListener(this);
   this.subscribedEvents[this.entity.manager.core.eventDispatcher.id] = {};
-  //entity destroyed event is global, since there is no entity to broadcast a local one(its destroyed duh)
-  this.subscribedEvents[this.entity.manager.core.eventDispatcher.id][consts.EVENT_ENTITY_ACTION.REMOVE] = this.onTargetDestroyed;
 
-
-  //listen for own entity events
-  this.subscribedEvents[this.entity.eventDispatcher.id] = {};
-  this.subscribedEvents[this.entity.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.TARGET_REACHED] = this.onTargetReached;
-  this.subscribedEvents[this.entity.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = this.selfPositionChange; 
 }
 
-MeleeAttack.prototype.selfPositionChange = function(e) {
-  //cancel attack upon movement
-  if(this.attackSwingId > -1){
-    console.log("Unit moved and attack swing was interupted!");
-    this.entity.manager.core.removeTimer(this.attackSwingId);
-    this.attackSwingId = -1;
+MeleeAttack.prototype.run = function(data) {
+  console.log("Used ability - %s", this.name);
+  console.log(data);
+  this.entity.setBlocking(true);
+  if(data.target){
+    this.unitTarget = data.target;
+    var target = this.entity.manager.entities[data.target];
+    target.eventDispatcher.registerEventListener(this);
+    this.unitTargetEdId = target.eventDispatcher.id;
+    this.subscribedEvents[this.unitTargetEdId] = {};
+    this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = this.onTargetPositionChange;
+    this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.DESTROY] = function(){console.log("asdaasdasfadfgagdsgsdfgdsgfsgfsgsgs");}
+    // this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.TARGET_REACHED] = function(e){
+    //   this.subscribedEvents[this.unitTargetEdId] = {};
+    // };  
+  
+    //listen for own entity events
+    this.subscribedEvents[this.entity.eventDispatcher.id] = {};
+    this.subscribedEvents[this.entity.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.TARGET_REACHED] = this.onTargetReached;
+    this.subscribedEvents[this.entity.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = this.selfPositionChange; 
+
+
+
+    //entity destroyed event is global, since there is no entity to broadcast a local one(its destroyed duh)
+    this.subscribedEvents[this.entity.manager.core.eventDispatcher.id][consts.EVENT_ENTITY_ACTION.REMOVE] = this.onTargetDestroyed;
+
   }
-  this.attemptSwing();
+  this.entity.movement.setTarget(data.groundTarget);
 };
 
 MeleeAttack.prototype.attemptSwing = function() {
@@ -71,23 +86,14 @@ MeleeAttack.prototype.doSwing = function() {
   }
 };
 
-MeleeAttack.prototype.run = function(data) {
-  console.log("Used ability - %s", this.name);
-  console.log(data);
-  this.entity.setAttackMaterial();
-  if(data.target){
-    this.unitTarget = data.target;
-    var target = this.entity.manager.entities[data.target];
-    target.eventDispatcher.registerEventListener(this);
-    this.unitTargetEdId = target.eventDispatcher.id;
-    this.subscribedEvents[this.unitTargetEdId] = {};
-    this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = this.onTargetPositionChange;
-    this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.DESTROY] = function(){console.log("asdaasdasfadfgagdsgsdfgdsgfsgfsgsgs");}
-    // this.subscribedEvents[this.unitTargetEdId][consts.EVENT_ENTITY_STATE_CHANGE.TARGET_REACHED] = function(e){
-    //   this.subscribedEvents[this.unitTargetEdId] = {};
-    // };  
+MeleeAttack.prototype.selfPositionChange = function(e) {
+  //cancel attack upon movement
+  if(this.attackSwingId > -1){
+    console.log("Unit moved and attack swing was interupted!");
+    this.entity.manager.core.removeTimer(this.attackSwingId);
+    this.attackSwingId = -1;
   }
-  this.entity.movement.setTarget(data.groundTarget);
+  this.attemptSwing();
 };
 
 MeleeAttack.prototype.onTargetPositionChange = function(e){
@@ -102,27 +108,36 @@ MeleeAttack.prototype.onTargetPositionChange = function(e){
   }
 };
 
-MeleeAttack.prototype.clearTarget = function() {
-  this.subscribedEvents[this.unitTargetEdId] = {};
-  this.attackSwingId = -1;
-  this.unitTarget = -1;
-  this.backswingId = -1;
-};
-
 MeleeAttack.prototype.onTargetDestroyed = function(e) {
   if(e.data[1] == this.unitTarget){
     console.log("TARGET DIED, CLEANING RESOURCES");
-    this.clearTarget();
+    this.abilityFinished();
   }
 };
 
 MeleeAttack.prototype.onTargetReached = function(e) {
   console.log("%d target reached", this.entity.id);
-  this.entity.setDefaultMaterial();
+  // this.entity.setDefaultMaterial();
+
+  // this.entity.body.mass = 1;
   if(this.unitTarget > -1){
     this.subscribedEvents[this.unitTargetEdId] = {};
     this.unitTarget = -1;
   }
+};
+
+MeleeAttack.prototype.abilityFinished = function() {
+  this.entity.setBlocking(false);
+  this.entity.movement.setTarget(this.entity.body.position);
+  this.subscribedEvents[this.unitTargetEdId] = {};
+  if(this.attackSwingId > -1 ){
+    this.entity.manager.core.removeTimer(this.attackSwingId);
+  }  
+  if(this.backswingId > -1 ){
+    this.entity.manager.core.removeTimer(this.backswingId);
+  }
+  this.unitTarget = -1;
+  this.unitTargetEdId = -1;
 };
 
 MeleeAttack.prototype.destroy = function() {

@@ -57,10 +57,6 @@ FollowPath.prototype.calculateRealSteering = function(resultVector) {
 
       var targetReachedEvent = new Event(consts.EVENT_ENTITY_STATE_CHANGE.TARGET_REACHED, this, {});
       this.movement.entity.eventBroadcast(targetReachedEvent);
-      //call path finished callback
-      // if(this.movement.onTargetReached){
-      //   this.movement.onTargetReached.cb.call(this.movement.onTargetReached.ctx);
-      // }
       return resultVector;
     }else{
       this.linearIdle = false;

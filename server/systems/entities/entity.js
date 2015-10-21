@@ -1,5 +1,4 @@
 var Body = require('p2').Body;
-var Rectangle = require('p2').Rectangle;
 var Circle = require('p2').Circle;
 var Material = require('p2').Material;
 var Event = require('../../lib/event.js');
@@ -26,8 +25,6 @@ function Entity(config){
     config.bodyProperties.type = Body.DYNAMIC;
   }
   var body = new Body(config.bodyProperties);
-
-  console.log(body.collisionResponse);
 
   this.defaultMaterial = config.defaultMaterial;
   this.attackMaterial = config.attackMaterial;
@@ -115,8 +112,24 @@ Entity.prototype.addAbilityCommand = function (data) {
   this.abilityQueue.push(data);
 };
 
-
 Entity.prototype.update = function (time) {
+  //check for state change
+  this.stateChangeCheck();
+
+  //movement
+  this.movement.process(time);
+  
+  //abilities
+  this.handleAbilityQueue();
+  //vision
+  this.resolveSeenBy();
+
+  //events
+  this.eventDispatcher.handleEventQueue();
+};
+
+Entity.prototype.stateChangeCheck = function() {
+
   if(this.body.previousPosition[0] != this.body.position[0] || this.body.previousPosition[1] != this.body.position[1]){
     this.stateChanged = true;
     var posEvent = new Event(consts.EVENT_ENTITY_STATE_CHANGE.POSITION, this, {});
@@ -137,27 +150,25 @@ Entity.prototype.update = function (time) {
       this.eventBroadcast(resEvent);
     }
   };
+};
 
-  //movement
-  this.movement.process(time);
-  
-  //abilities
+Entity.prototype.handleAbilityQueue = function() {
   var abilityData;
   while(typeof(abilityData=this.abilityQueue.shift())!='undefined'){
     try{
+      //clean up previous ability
+      if(this.currentAbility)
+        this.currentAbility.abilityFinished.call(this.currentAbility);
+
       var ability = this.abilities[abilityData.index];
-      ability.run(abilityData);
+      this.manager.core.registerTimer(0, ability.run, abilityData, ability, false);
+      // ability.run(abilityData);
+      this.currentAbility = ability;
     }catch(e){
       console.error(e);
       // console.log("Invalid ability used - %d", abilityData[2]);
     }
   }
-  //vision
-  this.resolveSeenBy();
-
-
-  //events
-  this.eventDispatcher.handleEventQueue();
 };
 
 Entity.prototype.resolveSeenBy = function() {
@@ -167,6 +178,14 @@ Entity.prototype.resolveSeenBy = function() {
     if(!this.manager.core.ps.players[p].isAI){
       this.seenBy.push(this.manager.core.ps.players[p].id);
     }
+  }
+};
+
+Entity.prototype.setBlocking = function(blocking) {
+  if(blocking){
+    this.body.type = 2;
+  }else{
+    this.body.type = 1;
   }
 };
 
