@@ -8,6 +8,8 @@ function TestAbility(entity, args) {
   this.subscribedEvents = {};
   this.entity = entity;
 
+  this.attackDamage = 5;
+
 
   this.interaction = null;
 }
@@ -26,7 +28,8 @@ TestAbility.prototype.run = function(data) {
       range: 50,
       interactionTime: 150,
       backswingTime: 50,
-      target: data.target
+      target: data.target,
+      action: this.dealDamage
     };
     this.interaction = new TargetInteraction(options);
   }else{
@@ -34,10 +37,13 @@ TestAbility.prototype.run = function(data) {
   }
 };
 
-TestAbility.prototype.destroy = function() {
+TestAbility.prototype.dealDamage = function(target) {
+  console.log(this.interaction);
+  target.resources[0].sub(this.attackDamage);
+};
 
+TestAbility.prototype.destroy = function() {
   this.interaction = null;
-  
 };
 
 TestAbility.prototype.abilityFinished = function() {
@@ -47,10 +53,8 @@ TestAbility.prototype.abilityFinished = function() {
   }
 };
 
-
 TestAbility.prototype.getSubscribedEvents = function() {
   return this.subscribedEvents;
 };
-
 
 module.exports = TestAbility;

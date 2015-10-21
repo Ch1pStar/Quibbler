@@ -7,6 +7,7 @@ function TargetInteraction(options) {
   this.targetId = -1;
   this.targetEdId = -1;
   this.target = null;
+  this.action = options.action;
   this.swingId = -1;
   this.backswingId = -1;
 
@@ -26,11 +27,15 @@ function TargetInteraction(options) {
   this.subGlobalEvents();
 
 
-  this.entity.movement.setTarget(this.target.body.position);
+  //redudant distance check
+  if(this.distanceToTarget() <= this.range){
+    this.attemptInteraction();
+  }else{
+    this.entity.movement.setTarget(this.target.body.position);
+  }
 }
 
 TargetInteraction.prototype.onSelfPositionChange = function(e) {
-  console.log(123);
   if(this.swingId > -1){
     this.entity.manager.core.removeTimer(this.swingId);
     this.swingId = -1;
@@ -39,7 +44,7 @@ TargetInteraction.prototype.onSelfPositionChange = function(e) {
 };
 
 TargetInteraction.prototype.attemptInteraction = function() {
-  if(this.distanceToTarget() < this.range && this.swingId < 0){
+  if(this.distanceToTarget() <= this.range && this.swingId < 0){
     this.entity.movement.setTarget(this.entity.body.position);
     this.swingId = this.entity.manager.core.registerTimer(this.interactionTime, this.doInteraction, {}, this, false);
   }
@@ -48,7 +53,9 @@ TargetInteraction.prototype.attemptInteraction = function() {
 TargetInteraction.prototype.doInteraction = function() {
     this.swingId = -1;
     //do actual interaction
-    console.log("Something");
+    if(this.action){
+      this.action.call(this.ability, this.target);
+    }
     this.backswingId = this.entity.manager.core.registerTimer(this.backswingTime, this.attemptInteraction, {}, this, false);
 };
 
@@ -68,12 +75,17 @@ TargetInteraction.prototype.onTargetDestroyed = function(e) {
 
 TargetInteraction.prototype.interactionFinished = function(){
   this.subscribedEvents[this.targetEdId] = {};
+  this.subscribedEvents[this.entity.eventDispatcher.id] = {};
+  this.subscribedEvents[this.entity.manager.core.eventDispatcher.id] = {};
+
   if(this.swingId > -1 ){
     this.entity.manager.core.removeTimer(this.swingId);
-  }  
+  }
   if(this.backswingId > -1 ){
     this.entity.manager.core.removeTimer(this.backswingId);
   }
+  this.swingId = -1;
+  this.backswingId = -1;
   this.targetId = -1;
   this.targetEdId = -1;
 };
@@ -101,6 +113,7 @@ TargetInteraction.prototype.subGlobalEvents = function() {
 };
 
 TargetInteraction.prototype.subEntityEvents = function() {
+  this.entity.eventDispatcher.registerEventListener(this);
   this.subscribedEvents[this.entity.eventDispatcher.id] = {};
   this.subscribedEvents[this.entity.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.TARGET_REACHED] = this.onTargetReached;
   this.subscribedEvents[this.entity.eventDispatcher.id][consts.EVENT_ENTITY_STATE_CHANGE.POSITION] = this.onSelfPositionChange; 
